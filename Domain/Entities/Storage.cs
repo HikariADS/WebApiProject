@@ -5,7 +5,7 @@ using WebApiProject.Enums;
 
 namespace WebApiProject.Models
 {
-    [Table("TableNames.Storage")]
+    [Table(TableNames.Storage)]
     public class Storage
     {
         [Key]
@@ -17,7 +17,7 @@ namespace WebApiProject.Models
         [Required]
         public int UserId { get; set; }
         [Required]
-        public int StorageTypesId { get; set; }
+        public int StorageTypeId { get; set; }
         public DateTimeOffset ImportDate { get; set; } = DateTimeOffset.Now;
         public DateTimeOffset ExportDate { get; set; } = DateTimeOffset.Now;
     }

@@ -5,8 +5,8 @@ using WebApiProject.Models;
 
 namespace WebApiProject.Models
 {
-    [Table("TableNames.StorageTypes")]
-    public class StorageTypes
+    [Table(TableNames.StorageType)]
+    public class StorageType
     {
         [Key]
         public int StorageTypeId { get; set; }

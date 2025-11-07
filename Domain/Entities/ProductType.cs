@@ -5,8 +5,8 @@ using WebApiProject.Constant;
 
 namespace WebApiProject.Models
 {
-    [Table("TableNames.ProductTypes")]
-    public class ProductTypes
+    [Table(TableNames.ProductType)]
+    public class ProductType
     {
         [Key]
         public int Id { get; set; }
