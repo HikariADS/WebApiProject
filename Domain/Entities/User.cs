@@ -1,10 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using WebApiProject.Models;
-using WebApiProject.Enums;
+using WebApiProject.Domain.Constant;
+using WebApiProject.Domain.Enums;
 using System.Reflection.Metadata.Ecma335;
 
-namespace WebApiProject.Models
+namespace WebApiProject.Domain.Entities
 {
     public class User
     {

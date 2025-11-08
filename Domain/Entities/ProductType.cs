@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using WebApiProject.Enums;
-using WebApiProject.Constant;
+using WebApiProject.Domain.Enums;
+using WebApiProject.Domain.Constant;
 
-namespace WebApiProject.Models
+namespace WebApiProject.Domain.Entities
 {
     [Table(TableNames.ProductType)]
     public class ProductType

@@ -8,6 +8,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\WebApiProject.Application.csproj" />
+    <ProjectReference Include="..\Infrastructure\WebApiProject.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

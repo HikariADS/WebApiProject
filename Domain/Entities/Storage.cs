@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using WebApiProject.Models;
-using WebApiProject.Enums;
+using WebApiProject.Domain.Constant;
+using WebApiProject.Domain.Enums;
 
-namespace WebApiProject.Models
+namespace WebApiProject.Domain.Entities
 {
     [Table(TableNames.Storage)]
     public class Storage
