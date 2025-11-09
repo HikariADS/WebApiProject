@@ -16,3 +16,5 @@ C:\Users\bebiu\WebApiProject\Infrastructure\obj\Debug\net9.0\WebApiProject.Infra
 C:\Users\bebiu\WebApiProject\Infrastructure\obj\Debug\net9.0\refint\WebApiProject.Infrastructure.dll
 C:\Users\bebiu\WebApiProject\Infrastructure\obj\Debug\net9.0\WebApiProject.Infrastructure.pdb
 C:\Users\bebiu\WebApiProject\Infrastructure\obj\Debug\net9.0\ref\WebApiProject.Infrastructure.dll
+C:\Users\bebiu\WebApiProject\Infrastructure\bin\Debug\net9.0\WebApiProject.Infrastructure.runtimeconfig.json
+C:\Users\bebiu\WebApiProject\Infrastructure\obj\Debug\net9.0\WebApiProject.Infrastructure.genruntimeconfig.cache

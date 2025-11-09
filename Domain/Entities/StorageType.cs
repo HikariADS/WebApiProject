@@ -9,7 +9,7 @@ namespace WebApiProject.Domain.Entities
     public class StorageType
     {
         [Key]
-        public int StorageTypeId { get; set; }
+        public int Id { get; set; }
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
