@@ -1,4 +1,4 @@
-namespace WebApiProject.Application.DTOs
+namespace WebApiProject.Application.DTOs.Product
 {
     public class ProductDto
     {
@@ -6,6 +6,7 @@ namespace WebApiProject.Application.DTOs
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int ProductTypeId { get; set; } //Fk
+        public string ProductTypeName { get; set; } = string.Empty;
 
     }
 }

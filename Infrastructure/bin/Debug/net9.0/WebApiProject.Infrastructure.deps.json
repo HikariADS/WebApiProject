@@ -993,6 +993,7 @@
       },
       "WebApiProject.Application/1.0.0": {
         "dependencies": {
+          "Microsoft.EntityFrameworkCore": "9.0.10",
           "WebApiProject.Domain": "1.0.0"
         },
         "runtime": {

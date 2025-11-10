@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using WebApiProject.Domain.Entities;
+using WebApiProject.Application.IRepositories;
 using WebApiProject.Infrastructure.Persistence;
 
 namespace WebApiProject.Infrastructure.Repositories
 {
-    public class ProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly AppDbContext _context;
 
@@ -23,15 +24,15 @@ namespace WebApiProject.Infrastructure.Repositories
             return await _context.Products.FindAsync(id);
         }
 
-        public async Task AddAsync(Product product)
+        public async Task AddAsync(Product entity)
         {
-            await _context.Products.AddAsync(product);
+            await _context.Products.AddAsync(entity);
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(Product product)
+        public async Task UpdateAsync(Product entity)
         {
-            _context.Products.Update(product);
+            _context.Products.Update(entity);
             await _context.SaveChangesAsync();
         }
 

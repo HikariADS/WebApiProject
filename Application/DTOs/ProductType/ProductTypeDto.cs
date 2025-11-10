@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-
-namespace WebApiProject.Application.DTOs
+namespace WebApiProject.Application.DTOs.ProductType
 {
-    public class ProductypeDto
+    public class ProductTypeDto
     {
-        public int ProdcutTyopId { get; set; }
+        public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string ProductTypeName { get; set; } = string.Empty;
     }
 }

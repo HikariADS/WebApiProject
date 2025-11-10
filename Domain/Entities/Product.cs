@@ -17,6 +17,7 @@ namespace WebApiProject.Domain.Entities
         [StringLength(225)]
         public string Description { get; set; } = string.Empty;
         [Required]
-        public int ProductTypeId { get; set;}
+        public int ProductTypeId { get; set; }
+         public ProductType? ProductType { get; set; }
     }
 }

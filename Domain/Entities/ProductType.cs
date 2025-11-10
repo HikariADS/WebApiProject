@@ -14,6 +14,9 @@ namespace WebApiProject.Domain.Entities
         [StringLength(255)]
         public string Name { get; set; } = string.Empty;
         [StringLength(255)]
-        public string Description { get; set;} = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        [StringLength(225)]
+        public string ProductTypeName { get; set; } = string.Empty;
+        
     }
 }

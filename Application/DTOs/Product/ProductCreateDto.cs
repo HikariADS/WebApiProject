@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 
-namespace WebApiProject.Application.DTOs
+namespace WebApiProject.Application.DTOs.Product
 {
     public class ProductCreateDto
     {

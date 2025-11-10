@@ -3270,6 +3270,7 @@
       "Microsoft.AspNetCore.OpenApi >= 9.0.10",
       "Swashbuckle.AspNetCore >= 6.6.2",
       "WebApiProject.Application >= 1.0.0",
+      "WebApiProject.Domain >= 1.0.0",
       "WebApiProject.Infrastructure >= 1.0.0"
     ]
   },
@@ -3308,6 +3309,9 @@
           "projectReferences": {
             "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Application\\WebApiProject.Application.csproj": {
               "projectPath": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Application\\WebApiProject.Application.csproj"
+            },
+            "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Domain\\WebApiProject.Domain.csproj": {
+              "projectPath": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Domain\\WebApiProject.Domain.csproj"
             },
             "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Infrastructure\\WebApiProject.Infrastructure.csproj": {
               "projectPath": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Infrastructure\\WebApiProject.Infrastructure.csproj"
