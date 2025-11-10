@@ -1099,6 +1099,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
+          "Microsoft.EntityFrameworkCore": "9.0.10",
           "WebApiProject.Domain": "1.0.0"
         },
         "compile": {
@@ -3273,35 +3274,43 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\bebiu\\.nuget\\packages\\": {}
+    "C:\\Users\\bebiu\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bebiu\\WebApiProject\\Api\\WebApiProject.csproj",
+      "projectUniqueName": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Api\\WebApiProject.csproj",
       "projectName": "WebApiProject",
-      "projectPath": "C:\\Users\\bebiu\\WebApiProject\\Api\\WebApiProject.csproj",
+      "projectPath": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Api\\WebApiProject.csproj",
       "packagesPath": "C:\\Users\\bebiu\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bebiu\\WebApiProject\\Api\\obj\\",
+      "outputPath": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Api\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "C:\\Users\\bebiu\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\bebiu\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "C:\\Users\\bebiu\\WebApiProject\\Application\\WebApiProject.Application.csproj": {
-              "projectPath": "C:\\Users\\bebiu\\WebApiProject\\Application\\WebApiProject.Application.csproj"
+            "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Application\\WebApiProject.Application.csproj": {
+              "projectPath": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Application\\WebApiProject.Application.csproj"
             },
-            "C:\\Users\\bebiu\\WebApiProject\\Infrastructure\\WebApiProject.Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\bebiu\\WebApiProject\\Infrastructure\\WebApiProject.Infrastructure.csproj"
+            "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Infrastructure\\WebApiProject.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\bebiu\\OneDrive\\Desktop\\Demo-spring-boot\\WebApiProject\\Infrastructure\\WebApiProject.Infrastructure.csproj"
             }
           }
         }

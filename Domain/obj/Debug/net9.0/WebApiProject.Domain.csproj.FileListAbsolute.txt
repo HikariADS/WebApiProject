@@ -10,3 +10,15 @@ C:\Users\bebiu\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.dll
 C:\Users\bebiu\WebApiProject\Domain\obj\Debug\net9.0\refint\WebApiProject.Domain.dll
 C:\Users\bebiu\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.pdb
 C:\Users\bebiu\WebApiProject\Domain\obj\Debug\net9.0\ref\WebApiProject.Domain.dll
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\bin\Debug\net9.0\WebApiProject.Domain.deps.json
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\bin\Debug\net9.0\WebApiProject.Domain.dll
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\bin\Debug\net9.0\WebApiProject.Domain.pdb
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.AssemblyInfoInputs.cache
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.AssemblyInfo.cs
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.csproj.CoreCompileInputs.cache
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.sourcelink.json
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.dll
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\refint\WebApiProject.Domain.dll
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.pdb
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\ref\WebApiProject.Domain.dll
