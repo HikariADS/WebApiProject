@@ -22,3 +22,4 @@ C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\
 C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\refint\WebApiProject.Domain.dll
 C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.pdb
 C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\ref\WebApiProject.Domain.dll
+C:\Users\bebiu\OneDrive\Desktop\Demo-spring-boot\WebApiProject\Domain\obj\Debug\net9.0\WebApiProject.Domain.csproj.AssemblyReference.cache

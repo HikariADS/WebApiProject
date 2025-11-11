@@ -13,7 +13,7 @@ namespace WebApiProject.Application.Mapping
                 Name = entity.Name,
                 Description = entity.Description,
                 ProductTypeId = entity.ProductTypeId,
-                ProductTypeName = entity.ProductType != null ? entity.ProductType.Name : null
+                ProductTypeName = entity.ProductType?.Name ?? string.Empty,
             };
         }
 

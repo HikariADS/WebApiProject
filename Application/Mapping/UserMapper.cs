@@ -10,10 +10,7 @@ namespace WebApiProject.Application.Mapping
         {
             return new UserDto
             {
-                Id = Entity.Id,
                 Name = Entity.Name,
-                Email = Entity.Email,
-                UserName = Entity.UserName,
                 CreateDate = DateTime.Now,
                 Role = Entity.Role,
             };
