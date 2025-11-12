@@ -10,15 +10,29 @@ using WebApiProject.Infrastructure;
 using WebApiProject.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
-
 var configuration = builder.Configuration;
+var jwtKey = configuration["Jwt:Key"] ?? throw new Exception("JWT Key is missing.");
+var jwtIssuer = configuration["Jwt:Issuer"] ?? "WarehouseApi";
+var jwtAudience = configuration["Jwt:Audience"] ?? "WarehouseApiUsers";
+var key = Encoding.UTF8.GetBytes(jwtKey);
 
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]!);
+builder.Services.AddInfrastructure(configuration);
+builder.Services.AddIdentityCore<IdentityUser>(options =>
+{
+    options.Password.RequireDigit = false;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireUppercase = false;
+})
+.AddRoles<IdentityRole>()
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/api/auth/login";
+    options.AccessDeniedPath = "/api/auth/denied";
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -28,22 +42,21 @@ builder.Services.AddAuthentication(options =>
 {
     options.RequireHttpsMetadata = false;
     options.SaveToken = true;
-    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuers = new[] { jwtSettings["Issuer"] },
-        ValidAudiences = new [] {jwtSettings["Audience"]},
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Services.AddInfrastructure(configuration);
 
 builder.Services.AddCors(options =>
 {
@@ -54,20 +67,14 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Warehouse API v1");
-        c.RoutePrefix = string.Empty; 
-    });
+    app.UseSwaggerUI();
 }
-app.UseAuthentication();
-app.UseAuthorization();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

@@ -1,55 +1,82 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebApiProject.Application.DTOs.User;
 using WebApiProject.Domain.Entities;
-using WebApiProject.Infrastructure.Persistence;
+using WebApiProject.Application.IServices;
 
 namespace WebApiProject.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        public UserController(AppDbContext context)
+        private readonly UserManager<User> _userManager;
+        private readonly IUserService _userService;
+        public UserController(UserManager<User> userManager, IUserService userService)
         {
-            _context = context;
+            _userManager = userManager;
+            _userService = userService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() => Ok(await _context.Users.ToListAsync());
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<IActionResult> GetAll()
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userManager.Users.ToListAsync();
+            return Ok(user);
+        }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
             return Ok(user);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(User user)
+        public async Task<IActionResult> Create([FromBody] UserCreateDto dto)
         {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return Ok(user);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = new User
+            {
+                UserName = dto.UserName,
+                Email = dto.Email,
+            };
+            var (success, errors) = await _userService.CreateUserAsync(dto); 
+            if (!success)
+            {
+                return BadRequest(errors);
+            }
+            await _userManager.AddToRoleAsync(user, "User");
+            return CreatedAtAction(nameof(Get), new { id = user.Id }, new { Id = user.Id, Email = user.Email });
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, User user)
+        public async Task<IActionResult> Update(string id, [FromBody] UserUpdateDto dto)
         {
-            if (id != user.Id) return BadRequest();
-            _context.Entry(user).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            var (success, errors) = await _userService.UpdateUserAsync(id, dto);
+            if (!success)
+            {
+                return BadRequest(new { Errors = errors });
+            }
             return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
             return NoContent();
         }
     }
