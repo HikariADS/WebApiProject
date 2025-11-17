@@ -5,7 +5,7 @@
 namespace WebApiProject.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSqlCreate : Migration
+    public partial class InitialUser : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

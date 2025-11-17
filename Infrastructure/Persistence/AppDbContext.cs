@@ -14,7 +14,6 @@ namespace WebApiProject.Infrastructure.Persistence
         public DbSet<ProductType> ProductTypes => Set<ProductType>();
         public DbSet<Storage> Storages => Set<Storage>();
         public DbSet<StorageType> StorageTypes => Set<StorageType>();
-        public DbSet<User> Users => Set<User>();
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
