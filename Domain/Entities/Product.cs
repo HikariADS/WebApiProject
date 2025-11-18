@@ -18,6 +18,11 @@ namespace WebApiProject.Domain.Entities
         public string Description { get; set; } = string.Empty;
         [Required]
         public int ProductTypeId { get; set; }
-         public ProductType? ProductType { get; set; }
+        public ProductType? ProductType { get; set; }
+        [Required]
+        public decimal Price { get; set; }
+        [Required]
+        public int Quantity { get; set; }
+
     }
 }

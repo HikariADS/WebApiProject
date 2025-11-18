@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using WebApiProject.Infrastructure;
 using WebApiProject.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -72,6 +73,24 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<WebApiProject.Infrastructure.Persistence.AppDbContext>();
+        var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+        await DataSeeder.SeedAsync(context, userManager, roleManager);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Loi seeding" + ex.Message);
+        Console.WriteLine(ex);
+    }
+}
+
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();

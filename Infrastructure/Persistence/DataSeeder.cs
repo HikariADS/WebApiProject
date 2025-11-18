@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using WebApiProject.Infrastructure.Persistence;
 using WebApiProject.Domain.Entities;
 
-namespace WebApiProject.Infrastructure.Presistence
+
+namespace WebApiProject.Infrastructure.Persistence
 {
     public static class DataSeeder
     {
@@ -25,14 +29,15 @@ namespace WebApiProject.Infrastructure.Presistence
             if (!context.Products.Any())
             {
                 var rnd = new Random();
-                var types = context.ProductTypes.Tolist();
+                var types = context.ProductTypes.ToList();
                 var products = Enumerable.Range(1, 30)
-                .Select(i => new ProductType
+                .Select(i => new Product
                 {
                     Name = $"Product {i}",
                     Description = $"Sapmple description fo product {i}",
                     Price = rnd.Next(50, 1000),
-                    ProductTypeId = types[rnd.Next(types.Count)].Id                    
+                    ProductTypeId = types[rnd.Next(types.Count)].Id, 
+                    Quantity = rnd.Next(1, 100)                  
                 })
                 .ToList();
                 context.Products.AddRange(products);
@@ -51,12 +56,12 @@ namespace WebApiProject.Infrastructure.Presistence
 
             if (!context.Storages.Any())
             {
-                var rnd = new Random();
+                var loopRnd = new Random();
                 var storages = Enumerable.Range(1, 10)
                     .Select(i => new Storage
                     {
-                        ProductId = rnd.Next(1, 30),
-                        Quantity = rnd.Next(1, 50),
+                        ProductId = loopRnd.Next(1, 30),
+                        Quantity = loopRnd.Next(1, 50),
                         UserId = 0, // nếu bạn chưa dùng Identity, để 0 hoặc null
                         StorageTypeId = rnd.Next(1, 3),
                         ImportDate = DateTimeOffset.Now.AddDays(-rnd.Next(10)),

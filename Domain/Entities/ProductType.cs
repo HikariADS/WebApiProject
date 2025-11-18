@@ -17,6 +17,8 @@ namespace WebApiProject.Domain.Entities
         public string Description { get; set; } = string.Empty;
         [StringLength(225)]
         public string ProductTypeName { get; set; } = string.Empty;
+
+        public decimal Price { get; set; }
         
     }
 }
