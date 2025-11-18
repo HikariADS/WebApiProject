@@ -10,9 +10,8 @@ namespace WebApiProject.Application.Mapping
         {
             return new UserDto
             {
-                Name = Entity.Name,
-                CreateDate = DateTime.Now,
-                Role = Entity.Role,
+                Name = Entity.FullName,
+                CreateDate = DateTime.Now
             };
         }
         public static User ToEntity(this UserCreateDto dto)
@@ -21,15 +20,13 @@ namespace WebApiProject.Application.Mapping
             {
                 UserName = dto.UserName,
                 Email = dto.Email,
-                Role = dto.Role,
-                CreatedDate = dto.CreatedDate,
+                CreatedDate = DateTimeOffset.UtcNow
             };
         }
         public static void UpdateEntity(this User entity, UserDto dto)
         {
-            entity.Name = dto.Name;
+            entity.FullName = dto.Name;
             entity.Email = dto.Email;
-            entity.Role = dto.Role;
             entity.UserName = dto.UserName;
         }
     }
