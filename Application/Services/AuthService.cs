@@ -6,45 +6,52 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using WebApiProject.Application.DTOs.Auth;
 using WebApiProject.Application.IServices;
+using WebApiProject.Domain.Entities;
 
 
 namespace WebApiProject.Application.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<User> _userManager;
         private readonly IConfiguration _config;
 
-        public AuthService(UserManager<IdentityUser> userManager, IConfiguration config)
+        public AuthService(UserManager<User> userManager, IConfiguration config)
         {
             _userManager = userManager;
             _config = config;
         }
 
-        public async Task<AuthResponseDto?> RegisterAsync(RegisterDto dto)
+        public async Task<(bool Success, IEnumerable<string> Errors)> RegisterAsync(RegisterDto dto)
         {
-            var user = new IdentityUser
+            var user = new User
             {
                 UserName = dto.UserName,
                 Email = dto.Email
             };
 
             var result = await _userManager.CreateAsync(user, dto.Password);
-            if (!result.Succeeded) return null;
-
-            return await GenerateJwtTokenAsync(user);
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, "User");
+            }
+            return (result.Succeeded, result.Errors.Select(e => e.Description));
         }
 
         public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
         {
-            var user = await _userManager.FindByNameAsync(dto.EmailorUserName);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
-                return null;
+            var user = await _userManager.FindByEmailAsync(dto.EmailorUserName);
+            if (user == null)
+            {
+                user = await _userManager.FindByNameAsync(dto.EmailorUserName);
+            }
+            if(user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
+            return null;
 
             return await GenerateJwtTokenAsync(user);
         }
 
-        private async Task<AuthResponseDto> GenerateJwtTokenAsync(IdentityUser user)
+        private async Task<AuthResponseDto> GenerateJwtTokenAsync(User user)
         {
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -73,7 +80,7 @@ namespace WebApiProject.Application.Services
                 UserId = user.Id,
                 UserName = user.UserName ?? "",
                 Token = new JwtSecurityTokenHandler().WriteToken(token),
-                Roles = roles
+                Roles = roles.ToList()
             };
         }
     }

@@ -10,12 +10,7 @@ namespace WebApiProject.Domain.Entities
 {
     public class User : IdentityUser 
     {
-
-        [Required]
-        public string Role { get; set; } = string.Empty;
-        [Required]
-        [StringLength(36)]
-        public string Name { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow;
 
     }

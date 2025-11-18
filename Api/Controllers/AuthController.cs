@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using WebApiProject.Domain.Entities;
 using WebApiProject.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using WebApiProject.Application.IServices;
+using WebApiProject.Application.DTOs.Auth;
 
 namespace WebApiProject.Api.Controllers
 {
@@ -9,27 +11,41 @@ namespace WebApiProject.Api.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        public AuthController(AppDbContext context)
+        private readonly IAuthService _authService;
+        public AuthController(IAuthService authService)
         {
-            _context = context;
+            _authService = authService;
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(string username, string password)
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
-            if (user == null) return Unauthorized("Invalid username");
-            // giả lập đăng nhập: sau này bạn có thể thay bằng JWT
-            return Ok(new { Message = "Login success", User = user });
+           if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var response = await _authService.LoginAsync(dto);
+            if (response == null)
+            {
+                return Unauthorized("Invalid credentials");
+            }
+            return Ok(response);
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(User user)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+
         {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return Ok(user);
+            if (!ModelState.IsValid )
+            {
+                return BadRequest(ModelState);
+            }
+            var (success, errors) = await _authService.RegisterAsync(dto);
+            if (!success)
+            {
+                return BadRequest(ModelState);
+            }
+            return Ok(new {Message = "Registration successful"});
         }
     }
 }
