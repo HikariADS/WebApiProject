@@ -10,8 +10,9 @@ namespace WebApiProject.Infrastructure.Persistence
 {
     public static class DataSeeder
     {
-        public static async Task SeedAsync(AppDbContext context, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
+        public static async Task SeedAsync(AppDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
         {
+            var rnd = new Random();
             await context.Database.MigrateAsync();
             if (!context.ProductTypes.Any())
             {
@@ -28,7 +29,6 @@ namespace WebApiProject.Infrastructure.Persistence
             }
             if (!context.Products.Any())
             {
-                var rnd = new Random();
                 var types = context.ProductTypes.ToList();
                 var products = Enumerable.Range(1, 30)
                 .Select(i => new Product
@@ -42,7 +42,8 @@ namespace WebApiProject.Infrastructure.Persistence
                 .ToList();
                 context.Products.AddRange(products);
                 await context.SaveChangesAsync();
-                 if (!context.StorageTypes.Any())
+            }
+            if (!context.StorageTypes.Any())
             {
                 var storageTypes = new List<StorageType>
                 {
@@ -85,7 +86,7 @@ namespace WebApiProject.Infrastructure.Persistence
             // ✅ Seed Admin user
             if (await userManager.FindByEmailAsync("admin@local.com") == null)
             {
-                var admin = new IdentityUser
+                var admin = new User
                 {
                     UserName = "admin",
                     Email = "admin@local.com",
@@ -97,7 +98,7 @@ namespace WebApiProject.Infrastructure.Persistence
 
             if (await userManager.FindByEmailAsync("user@local.com") == null)
             {
-                var user = new IdentityUser
+                var user = new User
                 {
                     UserName = "user",
                     Email = "user@local.com",
@@ -105,7 +106,6 @@ namespace WebApiProject.Infrastructure.Persistence
                 };
                 await userManager.CreateAsync(user, "User@123");
                 await userManager.AddToRoleAsync(user, "User");
-            }
             }
         }
     }

@@ -11,6 +11,7 @@ using WebApiProject.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using WebApiProject.Application.DTOs.Paging;
 using WebApiProject.Application.IServices;
+using WebApiProject.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -20,11 +21,13 @@ var jwtAudience = configuration["Jwt:Audience"] ?? "WarehouseApiUsers";
 var key = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddInfrastructure(configuration);
-builder.Services.AddIdentityCore<IdentityUser>(options =>
+builder.Services.AddIdentityCore<User>(options =>
 {
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
     options.Password.RequireUppercase = false;
+    options.User.RequireUniqueEmail = true;
+
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<AppDbContext>()
@@ -80,7 +83,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<WebApiProject.Infrastructure.Persistence.AppDbContext>();
-        var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+        var userManager = services.GetRequiredService<UserManager<User>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
         await DataSeeder.SeedAsync(context, userManager, roleManager);

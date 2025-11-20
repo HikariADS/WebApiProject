@@ -12,5 +12,9 @@ namespace WebApiProject.Application.DTOs.Auth
         public string Password { get; set; } = string.Empty;
         [Required]
         public string UserName { get; set; } = string.Empty;
+        [Required]
+        [StringLength(30)]
+        public string Name { get; set; } = string.Empty;
+        
     }
 }

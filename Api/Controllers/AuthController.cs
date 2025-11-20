@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using WebApiProject.Domain.Entities;
-using WebApiProject.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using WebApiProject.Application.IServices;
 using WebApiProject.Application.DTOs.Auth;
-
+using Microsoft.AspNetCore.Authorization;
 namespace WebApiProject.Api.Controllers
 {
     [ApiController]
@@ -43,9 +40,20 @@ namespace WebApiProject.Api.Controllers
             var (success, errors) = await _authService.RegisterAsync(dto);
             if (!success)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new {errors});
             }
             return Ok(new {Message = "Registration successful"});
         }
+        [Authorize(Roles = "Admin")]
+        [HttpPost("change-role")]
+        public async Task<IActionResult> ChangeRole(ChangeRoleDto dto)
+        {
+            var result = await _authService.ChangeRoleAsync(dto);
+            if (!result.Success)
+                return BadRequest(new { errors = result.Errors });
+
+            return Ok(new { Message = "Role updated" });
+        }
+
     }
 }

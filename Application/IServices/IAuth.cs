@@ -6,5 +6,7 @@ namespace WebApiProject.Application.IServices
     {
         Task<(bool Success, IEnumerable<string> Errors)> RegisterAsync(RegisterDto dto);
         Task<AuthResponseDto?> LoginAsync(LoginDto dto);
+        Task<(bool Success, IEnumerable<string> Errors)> ChangeRoleAsync(ChangeRoleDto dto);
+
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using WebApiProject.Application.DTOs.Auth;
+using WebApiProject.Application.DTOs.User;
 using WebApiProject.Application.IServices;
 using WebApiProject.Domain.Entities;
 
@@ -31,11 +32,12 @@ namespace WebApiProject.Application.Services
             };
 
             var result = await _userManager.CreateAsync(user, dto.Password);
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(user, "User");
-            }
-            return (result.Succeeded, result.Errors.Select(e => e.Description));
+            if (!result.Succeeded)
+            return (false, result.Errors.Select(e => e.Description));
+            await _userManager.AddToRoleAsync(user, "User");
+            return (true, Array.Empty<string>());
+            
+
         }
 
         public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
@@ -50,7 +52,21 @@ namespace WebApiProject.Application.Services
 
             return await GenerateJwtTokenAsync(user);
         }
+        public async Task<(bool Success, IEnumerable<string> Errors)> ChangeRoleAsync(ChangeRoleDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(dto.UserId);
+            if (user == null)
+                return (false, new[] { "User not found" });
 
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+            var result = await _userManager.AddToRoleAsync(user, dto.NewRole);
+            if (!result.Succeeded)
+                return (false, result.Errors.Select(e => e.Description));
+
+            return (true, Array.Empty<string>());
+        }
         private async Task<AuthResponseDto> GenerateJwtTokenAsync(User user)
         {
             var roles = await _userManager.GetRolesAsync(user);
@@ -74,6 +90,7 @@ namespace WebApiProject.Application.Services
                 expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_config["Jwt:ExpireMinutes"] ?? "60")),
                 signingCredentials: creds
             );
+        
 
             return new AuthResponseDto
             {
