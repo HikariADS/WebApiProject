@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using WebApiProject.Domain.Entities;
 using WebApiProject.Application.IRepositories;
+using WebApiProject.Application.DTOs.Paging;
+using WebApiProject.Application.DTOs.Product;
 using WebApiProject.Infrastructure.Persistence;
+using System.Data.Common;
 
 namespace WebApiProject.Infrastructure.Repositories
 {
@@ -13,12 +16,26 @@ namespace WebApiProject.Infrastructure.Repositories
         {
             _context = context;
         }
-
-        public async Task<IEnumerable<Product>> GetAllAsync()
+        public async Task<PageResult<ProductDto>> GetAllAsync(ProductQueryRequest request)
         {
-            return await _context.Products.AsNoTracking().ToListAsync();
+            var query = _context.Products.AsQueryable();
+            if (!string.IsNullOrEmpty(request.Keyword))
+            {
+                query = query.Where(p => p.Name.Contains(request.Keyword));
+            }
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .Skip((request.PageNumber -1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Price = p.Price
+                })
+                .ToListAsync();
+            return new PageResult<ProductDto>(items, totalItems, request.PageNumber, request.PageSize);
         }
-
         public async Task<Product?> GetByIdAsync(int id)
         {
             return await _context.Products.FindAsync(id);
@@ -45,5 +62,10 @@ namespace WebApiProject.Infrastructure.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+        public IQueryable<Product> GetQueryable()
+        {
+            return _context.Products.AsQueryable();
+        }
+
     }
 }

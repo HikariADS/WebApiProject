@@ -6,7 +6,9 @@ using WebApiProject.Infrastructure.Repositories;
 using WebApiProject.Domain.Entities;
 using WebApiProject.Application.IServices;
 using WebApiProject.Application.Services;
+using WebApiProject.Application.DTOs.Paging;
 using Microsoft.AspNetCore.Identity;
+
 
 namespace WebApiProject.Infrastructure
 {
@@ -24,7 +26,7 @@ namespace WebApiProject.Infrastructure
             services.AddScoped<StorageRepository>();
             services.AddScoped<StorageTypeRepository>();
             services.AddScoped<IAuthService, AuthService>();
-
+            services.AddScoped(typeof(IGenericPagingService<,>), typeof(GenericPagingService<,>));
             return services;
         }
     }

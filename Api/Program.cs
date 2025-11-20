@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using WebApiProject.Infrastructure;
 using WebApiProject.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using WebApiProject.Application.DTOs.Paging;
+using WebApiProject.Application.IServices;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -54,7 +56,6 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

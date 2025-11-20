@@ -1,3 +1,6 @@
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+using WebApiProject.Application.DTOs.Paging;
 using WebApiProject.Application.DTOs.Product;
 using WebApiProject.Application.IRepositories;
 using WebApiProject.Application.IServices;
@@ -9,16 +12,19 @@ namespace WebApiProject.Application.Services
     public class ProductService : IProductService
     {
         private readonly IProductRepository _repository;
-
-        public ProductService(IProductRepository repository)
+        private readonly IGenericPagingService<Product, ProductDto> _paging;
+        public ProductService(
+            IGenericPagingService<Product, ProductDto> paging,
+            IProductRepository repository)
         {
             _repository = repository;
+            _paging = paging;
         }
 
         public async Task<IEnumerable<ProductDto>> GetAllAsync()
         {
-            var entities = await _repository.GetAllAsync();
-            return entities.Select(e => e.ToDto());
+            var entities = await _repository.GetAllAsync(new ProductQueryRequest());
+            return entities.Items;
         }
 
         public async Task<ProductDto?> GetByIdAsync(int id)
@@ -51,6 +57,19 @@ namespace WebApiProject.Application.Services
 
             await _repository.DeleteAsync(id);
             return true;
+        }
+        public async Task<PageResult<ProductDto>> GetAllAsync(PageRequest request)
+        {
+            var query = _repository.GetQueryable();
+            return await _paging.PagingAsync
+            (
+                query,
+                request,
+                null,
+                x => x.Name,
+                x => x.Description
+                
+            );
         }
     }
 }

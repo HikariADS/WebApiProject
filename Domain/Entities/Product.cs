@@ -20,6 +20,7 @@ namespace WebApiProject.Domain.Entities
         public int ProductTypeId { get; set; }
         public ProductType? ProductType { get; set; }
         [Required]
+        [Column(TypeName ="decimal(18, 2)")]
         public decimal Price { get; set; }
         [Required]
         public int Quantity { get; set; }

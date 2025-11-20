@@ -1,12 +1,14 @@
 using WebApiProject.Domain.Entities;
+using WebApiProject.Application.DTOs.Paging;
+using WebApiProject.Application.DTOs.Product;
+
 
 namespace WebApiProject.Application.IRepositories
 {
     public interface IProductRepository
     {
         // Lấy tất cả sản phẩm
-        Task<IEnumerable<Product>> GetAllAsync();
-
+        Task<PageResult<ProductDto>> GetAllAsync(ProductQueryRequest request);
         // Lấy sản phẩm theo ID
         Task<Product?> GetByIdAsync(int id);
 
@@ -18,5 +20,8 @@ namespace WebApiProject.Application.IRepositories
 
         // Xóa sản phẩm
         Task DeleteAsync(int id);
+        IQueryable<Product> GetQueryable();
+
     }
+        
 }
