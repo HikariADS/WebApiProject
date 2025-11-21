@@ -61,15 +61,13 @@ namespace WebApiProject.Application.Services
         public async Task<PageResult<ProductDto>> GetAllAsync(PageRequest request)
         {
             var query = _repository.GetQueryable();
-            return await _paging.PagingAsync
-            (
+            return await _paging.PagingAsync(
                 query,
                 request,
-                null,
-                x => x.Name,
-                x => x.Description
-                
+                p => p.Name,
+                p => p.Description
             );
+
         }
     }
 }

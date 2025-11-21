@@ -10,7 +10,6 @@ namespace WebApiProject.Application.IServices
         Task<PageResult<TDto>> PagingAsync(
             IQueryable<TEntity> query,
             PageRequest request,
-            Expression<Func<TEntity, bool>>? filter = null,
             params Expression<Func<TEntity, object>>[] searchFields
         );
     }

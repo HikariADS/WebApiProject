@@ -6,9 +6,8 @@ using WebApiProject.Infrastructure.Repositories;
 using WebApiProject.Domain.Entities;
 using WebApiProject.Application.IServices;
 using WebApiProject.Application.Services;
-using WebApiProject.Application.DTOs.Paging;
 using Microsoft.AspNetCore.Identity;
-
+using WebApiProject.Application.IRepositories;
 
 namespace WebApiProject.Infrastructure
 {
@@ -19,14 +18,21 @@ namespace WebApiProject.Infrastructure
             services.AddIdentity<User, IdentityRole>() 
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
-            services.AddScoped<ProductRepository>();
-            services.AddScoped<ProductTypeRepository>();
-            services.AddScoped<StorageRepository>();
-            services.AddScoped<StorageTypeRepository>();
-            services.AddScoped<IAuthService, AuthService>();
+
+            // FIXED: Register repository interface bindings
+            services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<IProductTypeRepository, ProductTypeRepository>();
+            services.AddScoped<IStorageRepository, StorageRepository>();
+            services.AddScoped<IStorageTypeRepository, StorageTypeRepository>();
+
+            // Paging + Services
             services.AddScoped(typeof(IGenericPagingService<,>), typeof(GenericPagingService<,>));
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IAuthService, AuthService>();
+
             return services;
         }
     }

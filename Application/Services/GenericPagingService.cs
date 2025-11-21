@@ -14,14 +14,9 @@ namespace WebApiProject.Application.Services
         public async Task<PageResult<TDto>> PagingAsync(
             IQueryable<TEntity> query,
             PageRequest request,
-            Expression<Func<TEntity, bool>>? filter = null,
             params Expression<Func<TEntity, object>>[] searchFields
         )
         {
-            // ========== FILTER ==========
-            if (filter != null)
-                query = query.Where(filter);
-
             // ========== SEARCH ==========
             if (!string.IsNullOrWhiteSpace(request.Search) && searchFields?.Length > 0)
             {
@@ -76,8 +71,8 @@ namespace WebApiProject.Application.Services
 
             return new PageResult<TDto>
             {
+                Items = dtoList,
                 TotalItems = total,
-                TotalCount = total,
                 PageNumber = request.PageNumber,
                 PageSize = request.PageSize
             };
@@ -114,11 +109,5 @@ namespace WebApiProject.Application.Services
             return (IQueryable<TEntity>)genericMethod.Invoke(null, new object[] { source, keySelector })!;
         }
 
-        public Task<PageResult<TDto1>> PagingAsync<TEntity1, TDto1>(IQueryable<TEntity1> query, PageRequest request, Func<TEntity1, bool>? filter, Func<TEntity1, object> orderBy, Func<TEntity1, object>? thenBy = default)
-            where TEntity1 : class
-            where TDto1 : class, new()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

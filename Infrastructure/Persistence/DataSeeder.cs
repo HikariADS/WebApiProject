@@ -83,7 +83,6 @@ namespace WebApiProject.Infrastructure.Persistence
                 }
             }
 
-            // ✅ Seed Admin user
             if (await userManager.FindByEmailAsync("admin@local.com") == null)
             {
                 var admin = new User

@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using WebApiProject.Application.IRepositories;
 using WebApiProject.Domain.Entities;
 using WebApiProject.Infrastructure.Persistence;
 
 namespace WebApiProject.Infrastructure.Repositories
 {
-    public class StorageTypeRepository
+    public class StorageTypeRepository : IStorageTypeRepository
     {
         private readonly AppDbContext _context;
 

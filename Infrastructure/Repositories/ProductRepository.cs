@@ -34,7 +34,12 @@ namespace WebApiProject.Infrastructure.Repositories
                     Price = p.Price
                 })
                 .ToListAsync();
-            return new PageResult<ProductDto>(items, totalItems, request.PageNumber, request.PageSize);
+            return new PageResult<ProductDto>{
+                Items = items, 
+                TotalItems = totalItems, 
+                PageNumber = request.PageNumber, 
+                PageSize = request.PageSize
+            };
         }
         public async Task<Product?> GetByIdAsync(int id)
         {
