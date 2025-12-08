@@ -1,0 +1,106 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using WebApiProject.Application.DTOs.Auth;
+using WebApiProject.Application.DTOs.User;
+using WebApiProject.Application.IServices;
+using WebApiProject.Domain.Entities;
+
+
+namespace WebApiProject.Application.Services
+{
+    public class AuthService : IAuthService
+    {
+        private readonly UserManager<User> _userManager;
+        private readonly IConfiguration _config;
+
+        public AuthService(UserManager<User> userManager, IConfiguration config)
+        {
+            _userManager = userManager;
+            _config = config;
+        }
+
+        public async Task<(bool Success, IEnumerable<string> Errors)> RegisterAsync(RegisterDto dto)
+        {
+            var user = new User
+            {
+                UserName = dto.UserName,
+                Email = dto.Email
+            };
+
+            var result = await _userManager.CreateAsync(user, dto.Password);
+            if (!result.Succeeded)
+            return (false, result.Errors.Select(e => e.Description));
+            await _userManager.AddToRoleAsync(user, "User");
+            return (true, Array.Empty<string>());
+            
+
+        }
+
+        public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
+        {
+            var user = await _userManager.FindByEmailAsync(dto.EmailorUserName);
+            if (user == null)
+            {
+                user = await _userManager.FindByNameAsync(dto.EmailorUserName);
+            }
+            if(user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
+            return null;
+
+            return await GenerateJwtTokenAsync(user);
+        }
+        public async Task<(bool Success, IEnumerable<string> Errors)> ChangeRoleAsync(ChangeRoleDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(dto.UserId);
+            if (user == null)
+                return (false, new[] { "User not found" });
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+            var result = await _userManager.AddToRoleAsync(user, dto.NewRole);
+            if (!result.Succeeded)
+                return (false, result.Errors.Select(e => e.Description));
+
+            return (true, Array.Empty<string>());
+        }
+        private async Task<AuthResponseDto> GenerateJwtTokenAsync(User user)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName ?? ""),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+                // Bổ sung claim UnitId
+                new Claim("unitid", user.UnitId ?? "")
+            };
+
+            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_config["Jwt:ExpireMinutes"] ?? "60")),
+                signingCredentials: creds
+            );
+        
+
+            return new AuthResponseDto
+            {
+                UserId = user.Id,
+                UserName = user.UserName ?? "",
+                Token = new JwtSecurityTokenHandler().WriteToken(token),
+                Roles = roles.ToList()
+            };
+        }
+    }
+}

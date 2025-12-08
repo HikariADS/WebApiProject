@@ -1,0 +1,21 @@
+## --- Bỏ qua thư mục Build (Quan trọng nhất) ---
+[Bb]in/
+[Oo]bj/
+
+## --- Visual Studio & VS Code ---
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## --- File cấu hình môi trường Local (Nên bỏ qua để tránh lộ bí mật) ---
+# appsettings.Development.json # Bỏ comment dòng này nếu bạn muốn giấu config local
+
+## --- Test results ---
+TestResults/
+
+## --- OS System Files ---
+.DS_Store
+Thumbs.db
