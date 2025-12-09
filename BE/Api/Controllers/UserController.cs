@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +16,12 @@ namespace WebApiProject.Api.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUserService _userService;
-        public UserController(UserManager<User> userManager, IUserService userService)
+        public UserController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IUserService userService)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _userService = userService;
         }
 
@@ -184,36 +187,66 @@ namespace WebApiProject.Api.Controllers
         [HttpPut("{id}/change-role")]
         public async Task<IActionResult> ChangeRole(string id, [FromBody] ChangeRoleDto dto)
         {
-            if (id != dto.UserId)
+            try
             {
-                return BadRequest(new { message = "User ID không khớp" });
+                if (dto == null || string.IsNullOrEmpty(dto.UserId) || string.IsNullOrEmpty(dto.NewRole))
+                {
+                    return BadRequest(new { message = "Dữ liệu không hợp lệ" });
+                }
+
+                if (id != dto.UserId)
+                {
+                    return BadRequest(new { message = "User ID không khớp" });
+                }
+
+                var user = await _userManager.FindByIdAsync(id);
+                if(user == null) 
+                {
+                    return NotFound(new { message = "Không tìm thấy user" });
+                }
+
+                // Validate role
+                var validRoles = new[] { "User", "Manager", "Admin" };
+                if (!validRoles.Contains(dto.NewRole))
+                {
+                    return BadRequest(new { message = "Role không hợp lệ. Chỉ chấp nhận: User, Manager, Admin" });
+                }
+
+                // Đảm bảo role tồn tại trong database
+                if (!await _roleManager.RoleExistsAsync(dto.NewRole))
+                {
+                    // Tạo role nếu chưa tồn tại
+                    var createRoleResult = await _roleManager.CreateAsync(new IdentityRole(dto.NewRole));
+                    if (!createRoleResult.Succeeded)
+                    {
+                        return StatusCode(500, new { message = $"Không thể tạo role {dto.NewRole}", errors = createRoleResult.Errors });
+                    }
+                }
+
+                // Lấy roles hiện tại và xóa tất cả
+                var currentRoles = await _userManager.GetRolesAsync(user);
+                if (currentRoles != null && currentRoles.Any())
+                {
+                    var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                    if (!removeResult.Succeeded)
+                    {
+                        return BadRequest(new { message = "Không thể xóa role cũ", errors = removeResult.Errors });
+                    }
+                }
+
+                // Thêm role mới
+                var result = await _userManager.AddToRoleAsync(user, dto.NewRole);
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new { message = "Không thể thêm role mới", errors = result.Errors });
+                }
+
+                return Ok(new { message = $"Đã thay đổi role thành {dto.NewRole}" });
             }
-
-            var user = await _userManager.FindByIdAsync(id);
-            if(user == null) return NotFound();
-
-            // Validate role
-            var validRoles = new[] { "User", "Manager", "Admin" };
-            if (!validRoles.Contains(dto.NewRole))
+            catch (Exception ex)
             {
-                return BadRequest(new { message = "Role không hợp lệ" });
+                return StatusCode(500, new { message = "Lỗi server khi thay đổi role", error = ex.Message });
             }
-
-            // Lấy roles hiện tại và xóa tất cả
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            if (currentRoles.Any())
-            {
-                await _userManager.RemoveFromRolesAsync(user, currentRoles);
-            }
-
-            // Thêm role mới
-            var result = await _userManager.AddToRoleAsync(user, dto.NewRole);
-            if (!result.Succeeded)
-            {
-                return BadRequest(new { errors = result.Errors });
-            }
-
-            return Ok(new { message = $"Đã thay đổi role thành {dto.NewRole}" });
         }
 
         // PHÂN QUYỀN: Admin có thể nâng User -> Manager cho đúng UnitId (deprecated, dùng change-role)

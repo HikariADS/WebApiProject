@@ -55,7 +55,7 @@ namespace WebApiProject.Infrastructure.Persistence
                 await context.SaveChangesAsync();
             }
 
-            var roles = new[] { "Admin", "User" };
+            var roles = new[] { "Admin", "Manager", "User" };
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
