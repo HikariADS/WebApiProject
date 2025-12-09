@@ -55,5 +55,22 @@ namespace WebApiProject.Api.Controllers
             return Ok(new { Message = "Role updated" });
         }
 
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest(new { message = "Token không hợp lệ" });
+            }
+
+            var result = await _authService.VerifyEmailAsync(token);
+            if (!result.Success)
+            {
+                return BadRequest(new { message = result.Message });
+            }
+
+            return Ok(new { message = result.Message });
+        }
+
     }
 }

@@ -16,5 +16,7 @@ namespace WebApiProject.Application.DTOs.Auth
         [StringLength(30)]
         public string Name { get; set; } = string.Empty;
         
+        [Phone]
+        public string? PhoneNumber { get; set; }
     }
 }

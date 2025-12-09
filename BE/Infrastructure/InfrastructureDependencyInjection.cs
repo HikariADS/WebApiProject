@@ -27,11 +27,17 @@ namespace WebApiProject.Infrastructure
             services.AddScoped<IProductTypeRepository, ProductTypeRepository>();
             services.AddScoped<IStorageRepository, StorageRepository>();
             services.AddScoped<IStorageTypeRepository, StorageTypeRepository>();
+            services.AddScoped<WebApiProject.Application.IRepositories.IPendingRegistrationRepository, PendingRegistrationRepository>();
 
             // Paging + Services
             services.AddScoped(typeof(IGenericPagingService<,>), typeof(GenericPagingService<,>));
             services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IProductTypeService, ProductTypeService>();
+            services.AddScoped<IStorageService, StorageService>();
+            services.AddScoped<IStorageTypeService, StorageTypeService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IEmailService, EmailService>();
 
             return services;
         }

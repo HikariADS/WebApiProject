@@ -19,3 +19,17 @@ TestResults/
 ## --- OS System Files ---
 .DS_Store
 Thumbs.db
+
+## --- Frontend (React) ---
+FE/node_modules/
+FE/dist/
+FE/.vite/
+FE/build/
+FE/.env.local
+FE/.env.development.local
+FE/.env.test.local
+FE/.env.production.local
+FE/npm-debug.log*
+FE/yarn-debug.log*
+FE/yarn-error.log*
+FE/pnpm-debug.log*
