@@ -21,10 +21,10 @@ namespace WebApiProject.Api.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var response = await _authService.LoginAsync(dto);
+            var (response, errorMessage) = await _authService.LoginAsync(dto);
             if (response == null)
             {
-                return Unauthorized("Invalid credentials");
+                return Unauthorized(new { message = errorMessage ?? "Đăng nhập thất bại" });
             }
             return Ok(response);
         }
