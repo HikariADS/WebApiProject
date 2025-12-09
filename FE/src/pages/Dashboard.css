@@ -4,7 +4,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
   margin-bottom: 30px;
 }
@@ -50,9 +50,22 @@
 }
 
 .welcome-section p {
-  margin: 0;
+  margin: 0 0 15px 0;
   color: #666;
   line-height: 1.6;
+}
+
+.quick-info {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 5px;
+  border-left: 4px solid #667eea;
+}
+
+.quick-info p {
+  margin: 0;
+  color: #555;
 }
 
 .loading {

@@ -47,9 +47,11 @@ namespace WebApiProject.Infrastructure.Persistence
             {
                 var storageTypes = new List<StorageType>
                 {
-                    new() { Name = "Main Warehouse" },
-                    new() { Name = "Backup Storage" },
-                    new() { Name = "Showroom" }
+                    new() { Name = "Kho chính", ManagerName = "Nguyễn Văn A", StorageLocation = "123 Đường ABC, Quận 1, TP.HCM" },
+                    new() { Name = "Kho phụ", ManagerName = "Trần Thị B", StorageLocation = "456 Đường XYZ, Quận 2, TP.HCM" },
+                    new() { Name = "Kho trưng bày", ManagerName = "Lê Văn C", StorageLocation = "789 Đường DEF, Quận 3, TP.HCM" },
+                    new() { Name = "Kho miền Bắc", ManagerName = "Phạm Thị D", StorageLocation = "321 Đường GHI, Hà Nội" },
+                    new() { Name = "Kho miền Trung", ManagerName = "Hoàng Văn E", StorageLocation = "654 Đường JKL, Đà Nẵng" }
                 };
                 context.StorageTypes.AddRange(storageTypes);
                 await context.SaveChangesAsync();
@@ -70,10 +72,31 @@ namespace WebApiProject.Infrastructure.Persistence
                 {
                     UserName = "admin",
                     Email = "admin@local.com",
-                    EmailConfirmed = true
+                    FullName = "Quản trị viên",
+                    EmailConfirmed = true,
+                    UnitId = "UNIT-001"
                 };
                 await userManager.CreateAsync(admin, "Admin@123");
                 await userManager.AddToRoleAsync(admin, "Admin");
+            }
+
+            User? managerUser = null;
+            if (await userManager.FindByEmailAsync("manager@local.com") == null)
+            {
+                managerUser = new User
+                {
+                    UserName = "manager",
+                    Email = "manager@local.com",
+                    FullName = "Người quản lý",
+                    EmailConfirmed = true,
+                    UnitId = "UNIT-001"
+                };
+                await userManager.CreateAsync(managerUser, "Manager@123");
+                await userManager.AddToRoleAsync(managerUser, "Manager");
+            }
+            else
+            {
+                managerUser = await userManager.FindByEmailAsync("manager@local.com");
             }
 
             if (await userManager.FindByEmailAsync("user@local.com") == null)
@@ -82,7 +105,9 @@ namespace WebApiProject.Infrastructure.Persistence
                 {
                     UserName = "user",
                     Email = "user@local.com",
-                    EmailConfirmed = true
+                    FullName = "Người dùng",
+                    EmailConfirmed = true,
+                    UnitId = "UNIT-001"
                 };
                 await userManager.CreateAsync(user, "User@123");
                 await userManager.AddToRoleAsync(user, "User");
@@ -96,17 +121,19 @@ namespace WebApiProject.Infrastructure.Persistence
                 
                 if (productIds.Any() && storageTypeIds.Any() && adminUser != null)
                 {
-                var storages = Enumerable.Range(1, 10)
-                    .Select(i => new Storage
-                    {
+                    var storages = Enumerable.Range(1, 20)
+                        .Select(i => new Storage
+                        {
                             ProductId = productIds[rnd.Next(productIds.Count)],
-                            Quantity = rnd.Next(1, 50),
-                            UserId = adminUser.Id, // dùng đúng kiểu string
+                            Quantity = rnd.Next(10, 200),
+                            UserId = adminUser.Id,
                             StorageTypeId = storageTypeIds[rnd.Next(storageTypeIds.Count)],
-                        ImportDate = DateTimeOffset.Now.AddDays(-rnd.Next(10)),
-                        ExportDate = DateTimeOffset.Now
-                    })
-                    .ToList();
+                            ImportDate = DateTimeOffset.Now.AddDays(-rnd.Next(1, 90)),
+                            ExportDate = rnd.Next(0, 3) == 0 ? null : DateTimeOffset.Now.AddDays(-rnd.Next(1, 30)), // 1/3 không có export date
+                            BelongToUnitId = "UNIT-001",
+                            ManagerId = managerUser?.Id
+                        })
+                        .ToList();
                     context.Storages.AddRange(storages);
                     await context.SaveChangesAsync();
                 }

@@ -18,17 +18,21 @@ namespace WebApiProject.Infrastructure.Persistence.Migrations
                 END
             ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "BelongToUnitId",
-                table: "Storages",
-                type: "nvarchar(max)",
-                nullable: true);
+            // Add BelongToUnitId if it doesn't exist
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Storages]') AND name = 'BelongToUnitId')
+                BEGIN
+                    ALTER TABLE [dbo].[Storages] ADD [BelongToUnitId] NVARCHAR(MAX) NULL;
+                END
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "ManagerId",
-                table: "Storages",
-                type: "nvarchar(max)",
-                nullable: true);
+            // Add ManagerId if it doesn't exist
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Storages]') AND name = 'ManagerId')
+                BEGIN
+                    ALTER TABLE [dbo].[Storages] ADD [ManagerId] NVARCHAR(MAX) NULL;
+                END
+            ");
         }
 
         /// <inheritdoc />
