@@ -20,6 +20,12 @@ namespace WebApiProject.Infrastructure.Repositories
                 .FirstOrDefaultAsync(p => p.VerificationToken == token && !p.IsVerified);
         }
 
+        public async Task<PendingRegistration?> GetByTokenIgnoreVerifiedAsync(string token)
+        {
+            return await _context.PendingRegistrations
+                .FirstOrDefaultAsync(p => p.VerificationToken == token);
+        }
+
         public async Task<PendingRegistration?> GetByEmailAsync(string email)
         {
             return await _context.PendingRegistrations

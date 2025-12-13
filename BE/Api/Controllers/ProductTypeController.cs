@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiProject.Domain.Entities;
@@ -7,6 +8,7 @@ namespace WebApiProject.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProductTypeController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -27,6 +29,7 @@ namespace WebApiProject.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Create(ProductType type)
         {
             _context.ProductTypes.Add(type);
@@ -35,6 +38,7 @@ namespace WebApiProject.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Update(int id, ProductType type)
         {
             if (id != type.Id) return BadRequest();
@@ -44,6 +48,7 @@ namespace WebApiProject.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Delete(int id)
         {
             var type = await _context.ProductTypes.FindAsync(id);

@@ -60,14 +60,73 @@ namespace WebApiProject.Application.Services
         }
         public async Task<PageResult<ProductDto>> GetAllAsync(PageRequest request)
         {
-            var query = _repository.GetQueryable();
-            return await _paging.PagingAsync(
-                query,
-                request,
-                p => p.Name,
-                p => p.Description
-            );
+            IQueryable<Product> query = _repository.GetQueryable();
+            
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var searchTerm = request.Search.Trim();
+                query = query.Where(p => p.Name.Contains(searchTerm) || p.Description.Contains(searchTerm));
+            }
 
+            // Apply sorting
+            if (!string.IsNullOrWhiteSpace(request.SortBy))
+            {
+                if (request.SortOrder == "desc")
+                {
+                    query = request.SortBy.ToLower() switch
+                    {
+                        "name" => query.OrderByDescending(p => p.Name),
+                        "description" => query.OrderByDescending(p => p.Description),
+                        "price" => query.OrderByDescending(p => p.Price),
+                        _ => query.OrderByDescending(p => p.Id)
+                    };
+                }
+                else
+                {
+                    query = request.SortBy.ToLower() switch
+                    {
+                        "name" => query.OrderBy(p => p.Name),
+                        "description" => query.OrderBy(p => p.Description),
+                        "price" => query.OrderBy(p => p.Price),
+                        _ => query.OrderBy(p => p.Id)
+                    };
+                }
+            }
+            else
+            {
+                query = query.OrderBy(p => p.Id);
+            }
+
+            // Get total count
+            var totalItems = await query.CountAsync();
+
+            // Apply paging and include ProductType
+            var skip = (request.PageNumber - 1) * request.PageSize;
+            var entities = await query
+                .Include(p => p.ProductType)
+                .Skip(skip)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            // Map to DTOs with ProductTypeName
+            var items = entities.Select(p => new ProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.Price,
+                ProductTypeId = p.ProductTypeId,
+                ProductTypeName = p.ProductType?.Name ?? string.Empty
+            }).ToList();
+
+            return new PageResult<ProductDto>
+            {
+                Items = items,
+                TotalItems = totalItems,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize
+            };
         }
     }
 }

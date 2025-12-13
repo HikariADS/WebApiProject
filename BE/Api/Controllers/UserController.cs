@@ -103,8 +103,9 @@ namespace WebApiProject.Api.Controllers
             return Ok(userWithRole);
         }
 
-        // CREATE - tạo user với role từ DTO (chỉ Admin mới có thể tạo user với role khác User)
+        // CREATE - tạo user với role từ DTO (chỉ Admin và Manager mới có thể tạo user)
         [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Create([FromBody] UserCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -165,8 +166,9 @@ namespace WebApiProject.Api.Controllers
             return NoContent();
         }
 
-        // DELETE user - chỉ admin, manager chỉ được xóa cùng unit
+        // DELETE user - chỉ Admin mới có thể xóa user
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string id)
         {
             var user = await _userManager.FindByIdAsync(id);

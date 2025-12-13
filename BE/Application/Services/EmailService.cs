@@ -30,6 +30,24 @@ namespace WebApiProject.Application.Services
 
         public async Task<bool> SendVerificationEmailAsync(string email, string userName, string verificationToken)
         {
+            // Nếu không có email config (development mode), log token ra console và return true
+            if (string.IsNullOrEmpty(_smtpUsername) || string.IsNullOrEmpty(_smtpPassword))
+            {
+                var verificationLink = $"{_baseUrl}/verify-email?token={verificationToken}";
+                Console.WriteLine("========================================");
+                Console.WriteLine("EMAIL VERIFICATION (Development Mode)");
+                Console.WriteLine("========================================");
+                Console.WriteLine($"Email: {email}");
+                Console.WriteLine($"UserName: {userName}");
+                Console.WriteLine($"Verification Link: {verificationLink}");
+                Console.WriteLine($"Token: {verificationToken}");
+                Console.WriteLine("========================================");
+                Console.WriteLine("Note: Email service is not configured.");
+                Console.WriteLine("In production, please configure SMTP settings in appsettings.json");
+                Console.WriteLine("========================================");
+                return true; // Return true để cho phép đăng ký tiếp tục
+            }
+
             try
             {
                 var verificationLink = $"{_baseUrl}/verify-email?token={verificationToken}";
@@ -44,7 +62,7 @@ namespace WebApiProject.Application.Services
                         <p><a href='{verificationLink}' style='background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;'>Xác thực email</a></p>
                         <p>Hoặc copy link sau vào trình duyệt:</p>
                         <p>{verificationLink}</p>
-                        <p><strong>Lưu ý:</strong> Link này sẽ hết hạn sau 24 giờ.</p>
+                        <p><strong>Lưu ý:</strong> Link này sẽ hết hạn sau 5 phút.</p>
                         <p>Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.</p>
                         <br>
                         <p>Trân trọng,<br>Warehouse System</p>
@@ -74,6 +92,16 @@ namespace WebApiProject.Application.Services
             {
                 // Log error (có thể dùng ILogger)
                 Console.WriteLine($"Error sending email: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                // Trong development, nếu lỗi gửi email, vẫn log token ra console
+                if (string.IsNullOrEmpty(_smtpUsername) || string.IsNullOrEmpty(_smtpPassword))
+                {
+                    var verificationLink = $"{_baseUrl}/verify-email?token={verificationToken}";
+                    Console.WriteLine($"Verification Link (fallback): {verificationLink}");
+                    return true;
+                }
+                
                 return false;
             }
         }

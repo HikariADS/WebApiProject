@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { storageTypeService } from '../api/storageTypeService'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { handleApiError } from '../utils/errorHandler'
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants'
 import './TablePage.css'
 import './ProductTypes.css'
 
@@ -10,6 +14,8 @@ const StorageTypes = () => {
   const [formData, setFormData] = useState({ name: '', managerName: '', storageLocation: '' })
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+  const { user: currentUser } = useAuth()
+  const { showToast } = useToast()
 
   useEffect(() => {
     fetchStorageTypes()
@@ -22,8 +28,8 @@ const StorageTypes = () => {
       setStorageTypes(Array.isArray(data) ? data : [])
       setError('')
     } catch (err) {
-      setError('Không thể tải danh sách loại kho')
-      console.error(err)
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.FETCH_FAILED, 'StorageTypes.fetchStorageTypes')
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -59,13 +65,17 @@ const StorageTypes = () => {
     try {
       if (editingId) {
         await storageTypeService.update(editingId, formData)
+        showToast(SUCCESS_MESSAGES.UPDATED, 'success')
       } else {
         await storageTypeService.create(formData)
+        showToast(SUCCESS_MESSAGES.CREATED, 'success')
       }
       handleCloseModal()
       fetchStorageTypes()
     } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra')
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.SAVE_FAILED, 'StorageTypes.handleSubmit')
+      setError(errorMessage)
+      showToast(errorMessage, 'error')
     }
   }
 
@@ -76,10 +86,11 @@ const StorageTypes = () => {
 
     try {
       await storageTypeService.delete(id)
+      showToast(SUCCESS_MESSAGES.DELETED, 'success')
       fetchStorageTypes()
     } catch (err) {
-      alert('Không thể xóa loại kho')
-      console.error(err)
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.DELETE_FAILED, 'StorageTypes.handleDelete')
+      showToast(errorMessage, 'error')
     }
   }
 
@@ -87,13 +98,18 @@ const StorageTypes = () => {
     return <div className="loading">Đang tải...</div>
   }
 
+  // Kiểm tra quyền: chỉ Admin và Manager mới có thể thêm/sửa/xóa
+  const canEdit = currentUser?.roles?.includes('Admin') || currentUser?.roles?.includes('Manager')
+
   return (
     <div className="table-page">
       <div className="page-header">
         <h2>Danh sách loại kho</h2>
-        <button className="btn-primary" onClick={() => handleOpenModal()}>
-          Thêm loại kho
-        </button>
+        {canEdit && (
+          <button className="btn-primary" onClick={() => handleOpenModal()}>
+            Thêm loại kho
+          </button>
+        )}
       </div>
       {error && !showModal && <div className="error">{error}</div>}
       <div className="table-container">
@@ -122,12 +138,18 @@ const StorageTypes = () => {
                   <td>{type.managerName || type.ManagerName || '-'}</td>
                   <td>{type.storageLocation || type.StorageLocation || '-'}</td>
                   <td>
-                    <button className="btn-edit" onClick={() => handleOpenModal(type)}>
-                      Sửa
-                    </button>
-                    <button className="btn-delete" onClick={() => handleDelete(type.id || type.Id)}>
-                      Xóa
-                    </button>
+                    {canEdit ? (
+                      <>
+                        <button className="btn-edit" onClick={() => handleOpenModal(type)}>
+                          Sửa
+                        </button>
+                        <button className="btn-delete" onClick={() => handleDelete(type.id || type.Id)}>
+                          Xóa
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ color: '#999', fontSize: '0.9rem' }}>Chỉ xem</span>
+                    )}
                   </td>
                 </tr>
               ))

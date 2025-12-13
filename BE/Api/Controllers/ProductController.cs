@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiProject.Application.DTOs.Paging;
@@ -10,6 +11,7 @@ namespace WebApiProject.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProductController : ControllerBase
     {
         private readonly IProductService _service;
@@ -34,6 +36,7 @@ namespace WebApiProject.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Create([FromBody] ProductCreateDto dto)
         {
            var newItem = await _service.CreateAsync(dto);
@@ -41,13 +44,16 @@ namespace WebApiProject.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update([FromBody] ProductUpdateDto dto)
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> Update(int id, [FromBody] ProductUpdateDto dto)
         {
+            if (id != dto.Id) return BadRequest("ID mismatch");
             var success = await _service.UpdateAsync(dto);
             return Ok(success);
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _service.DeleteAsync(id);

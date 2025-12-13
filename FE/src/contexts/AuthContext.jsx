@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from 'react'
 import { authService } from '../api/authService'
+import { logError } from '../utils/errorHandler'
 
 const AuthContext = createContext(null)
 
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       try {
         setUser(JSON.parse(savedUser))
       } catch (error) {
-        console.error('Error parsing user data:', error)
+        logError(error, 'AuthContext.useEffect')
         localStorage.removeItem('token')
         localStorage.removeItem('user')
       }
@@ -51,17 +52,20 @@ export const AuthProvider = ({ children }) => {
       const errorData = error.response?.data
       let errorMessage = 'Đăng nhập thất bại'
       
+      // Backend trả về { message: "..." } khi Unauthorized
       if (errorData) {
-        if (typeof errorData === 'string') {
-          errorMessage = errorData
-        } else if (errorData.message) {
+        if (errorData.message) {
           errorMessage = errorData.message
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData
         } else if (errorData.title) {
           errorMessage = errorData.title
         } else if (typeof errorData === 'object') {
           // Nếu là object phức tạp, lấy message hoặc convert thành string
           errorMessage = JSON.stringify(errorData)
         }
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Tài khoản hoặc mật khẩu không đúng'
       }
       
       return {

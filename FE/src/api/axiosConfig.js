@@ -27,9 +27,15 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token hết hạn hoặc không hợp lệ
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      // Chỉ redirect nếu không phải đang ở trang login/register
+      const currentPath = window.location.pathname
+      if (currentPath !== '/login' && currentPath !== '/register' && currentPath !== '/verify-email') {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        // Sử dụng window.location.href để reload và clear state
+        window.location.href = '/login'
+      }
+      // Nếu đang ở trang login/register, chỉ reject error để component xử lý
     }
     return Promise.reject(error)
   }

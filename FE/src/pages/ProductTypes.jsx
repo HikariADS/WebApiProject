@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { productTypeService } from '../api/productTypeService'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { handleApiError } from '../utils/errorHandler'
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants'
 import './TablePage.css'
 import './ProductTypes.css'
 
@@ -10,6 +14,8 @@ const ProductTypes = () => {
   const [formData, setFormData] = useState({ name: '', description: '' })
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+  const { user: currentUser } = useAuth()
+  const { showToast } = useToast()
 
   useEffect(() => {
     fetchProductTypes()
@@ -22,8 +28,8 @@ const ProductTypes = () => {
       setProductTypes(Array.isArray(data) ? data : [])
       setError('')
     } catch (err) {
-      setError('Không thể tải danh sách loại sản phẩm')
-      console.error(err)
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.FETCH_FAILED, 'ProductTypes.fetchProductTypes')
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -55,13 +61,17 @@ const ProductTypes = () => {
     try {
       if (editingId) {
         await productTypeService.update(editingId, formData)
+        showToast(SUCCESS_MESSAGES.UPDATED, 'success')
       } else {
         await productTypeService.create(formData)
+        showToast(SUCCESS_MESSAGES.CREATED, 'success')
       }
       handleCloseModal()
       fetchProductTypes()
     } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra')
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.SAVE_FAILED, 'ProductTypes.handleSubmit')
+      setError(errorMessage)
+      showToast(errorMessage, 'error')
     }
   }
 
@@ -72,10 +82,11 @@ const ProductTypes = () => {
 
     try {
       await productTypeService.delete(id)
+      showToast(SUCCESS_MESSAGES.DELETED, 'success')
       fetchProductTypes()
     } catch (err) {
-      alert('Không thể xóa loại sản phẩm')
-      console.error(err)
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.DELETE_FAILED, 'ProductTypes.handleDelete')
+      showToast(errorMessage, 'error')
     }
   }
 
@@ -83,13 +94,18 @@ const ProductTypes = () => {
     return <div className="loading">Đang tải...</div>
   }
 
+  // Kiểm tra quyền: chỉ Admin và Manager mới có thể thêm/sửa/xóa
+  const canEdit = currentUser?.roles?.includes('Admin') || currentUser?.roles?.includes('Manager')
+
   return (
     <div className="table-page">
       <div className="page-header">
         <h2>Danh sách loại sản phẩm</h2>
-        <button className="btn-primary" onClick={() => handleOpenModal()}>
-          Thêm loại sản phẩm
-        </button>
+        {canEdit && (
+          <button className="btn-primary" onClick={() => handleOpenModal()}>
+            Thêm loại sản phẩm
+          </button>
+        )}
       </div>
       {error && !showModal && <div className="error">{error}</div>}
       <div className="table-container">
@@ -116,12 +132,18 @@ const ProductTypes = () => {
                   <td>{type.name || type.Name}</td>
                   <td>{type.description || type.Description || '-'}</td>
                   <td>
-                    <button className="btn-edit" onClick={() => handleOpenModal(type)}>
-                      Sửa
-                    </button>
-                    <button className="btn-delete" onClick={() => handleDelete(type.id || type.Id)}>
-                      Xóa
-                    </button>
+                    {canEdit ? (
+                      <>
+                        <button className="btn-edit" onClick={() => handleOpenModal(type)}>
+                          Sửa
+                        </button>
+                        <button className="btn-delete" onClick={() => handleDelete(type.id || type.Id)}>
+                          Xóa
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ color: '#999', fontSize: '0.9rem' }}>Chỉ xem</span>
+                    )}
                   </td>
                 </tr>
               ))

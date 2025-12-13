@@ -3,6 +3,7 @@ import { productService } from '../api/productService'
 import { storageService } from '../api/storageService'
 import { productTypeService } from '../api/productTypeService'
 import { storageTypeService } from '../api/storageTypeService'
+import { logError } from '../utils/errorHandler'
 import './Dashboard.css'
 
 const Dashboard = () => {
@@ -46,7 +47,7 @@ const Dashboard = () => {
           loading: false,
         })
       } catch (error) {
-        console.error('Error fetching stats:', error)
+        logError(error, 'Dashboard.fetchStats')
         setStats((prev) => ({ ...prev, loading: false }))
       }
     }

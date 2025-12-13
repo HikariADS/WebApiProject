@@ -67,7 +67,7 @@ namespace WebApiProject.Application.Services
                 PhoneNumber = dto.PhoneNumber,
                 VerificationToken = verificationToken,
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddHours(24),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(5), // Token hết hạn sau 5 phút
                 IsVerified = false
             };
 
@@ -92,77 +92,119 @@ namespace WebApiProject.Application.Services
             return (true, Array.Empty<string>());
         }
 
-        public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
+        public async Task<(AuthResponseDto? Response, string? ErrorMessage)> LoginAsync(LoginDto dto)
         {
             var user = await _userManager.FindByEmailAsync(dto.EmailorUserName);
             if (user == null)
             {
                 user = await _userManager.FindByNameAsync(dto.EmailorUserName);
             }
-            if(user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
-            return null;
+            
+            // Kiểm tra tài khoản có tồn tại không
+            if (user == null)
+            {
+                return (null, "Tài khoản không tồn tại. Vui lòng kiểm tra lại email hoặc tên đăng nhập.");
+            }
+
+            // Kiểm tra mật khẩu
+            if (!await _userManager.CheckPasswordAsync(user, dto.Password))
+            {
+                return (null, "Mật khẩu không đúng. Vui lòng thử lại.");
+            }
 
             // Kiểm tra email đã được verify chưa
             if (!user.EmailConfirmed)
             {
-                // Có thể throw exception hoặc return null với message
-                // Tạm thời vẫn cho login, nhưng có thể thêm check sau
+                return (null, "Email chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.");
             }
 
-            return await GenerateJwtTokenAsync(user);
+            var response = await GenerateJwtTokenAsync(user);
+            return (response, null);
         }
 
         public async Task<(bool Success, string Message)> VerifyEmailAsync(string token)
         {
-            var pendingRegistration = await _pendingRegistrationRepository.GetByTokenAsync(token);
-
-            if (pendingRegistration == null)
+            try
             {
-                return (false, "Token không hợp lệ hoặc đã được sử dụng");
-            }
+                // Lấy pending registration (chỉ lấy những cái chưa verify)
+                var pendingRegistration = await _pendingRegistrationRepository.GetByTokenAsync(token);
 
-            if (pendingRegistration.ExpiresAt < DateTime.UtcNow)
-            {
+                if (pendingRegistration == null)
+                {
+                    // Nếu không tìm thấy token chưa verify, có thể token đã được sử dụng
+                    // Kiểm tra xem có token này (kể cả đã verify) để lấy email
+                    var anyPendingRegistration = await _pendingRegistrationRepository.GetByTokenIgnoreVerifiedAsync(token);
+                    
+                    if (anyPendingRegistration != null)
+                    {
+                        // Token đã tồn tại (có thể đã verify), kiểm tra xem user đã được tạo chưa
+                        var verifiedUser = await _userManager.FindByEmailAsync(anyPendingRegistration.Email);
+                        if (verifiedUser != null && verifiedUser.EmailConfirmed)
+                        {
+                            // User đã được tạo và email đã được verify, trả về thành công
+                            return (true, "Email đã được xác thực thành công trước đó. Bạn có thể đăng nhập ngay bây giờ.");
+                        }
+                    }
+                    
+                    return (false, "Token không hợp lệ hoặc đã được sử dụng");
+                }
+
+                if (pendingRegistration.ExpiresAt < DateTime.UtcNow)
+                {
+                    await _pendingRegistrationRepository.RemoveAsync(pendingRegistration);
+                    await _pendingRegistrationRepository.SaveChangesAsync();
+                    return (false, "Token đã hết hạn. Vui lòng đăng ký lại.");
+                }
+
+                // Kiểm tra email đã tồn tại chưa
+                var existingUser = await _userManager.FindByEmailAsync(pendingRegistration.Email);
+                if (existingUser != null)
+                {
+                    await _pendingRegistrationRepository.RemoveAsync(pendingRegistration);
+                    await _pendingRegistrationRepository.SaveChangesAsync();
+                    return (false, "Email này đã được sử dụng");
+                }
+
+                // QUAN TRỌNG: Đánh dấu IsVerified = true NGAY LẬP TỨC để token không thể dùng lại
+                // Ngay cả khi có request thứ 2 cùng lúc, nó sẽ không tìm thấy token này nữa
+                // (vì GetByTokenAsync filter !p.IsVerified)
+                pendingRegistration.IsVerified = true;
+                await _pendingRegistrationRepository.SaveChangesAsync();
+
+                // Tạo user mới - cần lưu password hash trực tiếp vì đã hash rồi
+                var user = new User
+                {
+                    UserName = pendingRegistration.UserName,
+                    Email = pendingRegistration.Email,
+                    FullName = pendingRegistration.Name,
+                    PhoneNumber = pendingRegistration.PhoneNumber,
+                    EmailConfirmed = true, // Đánh dấu email đã được verify
+                    PasswordHash = pendingRegistration.PasswordHash // Set password hash trực tiếp
+                };
+
+                // Tạo user mà không set password (vì đã set PasswordHash)
+                var result = await _userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                {
+                    // Nếu tạo user thất bại, đặt lại IsVerified = false để có thể thử lại
+                    pendingRegistration.IsVerified = false;
+                    await _pendingRegistrationRepository.SaveChangesAsync();
+                    return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+
+                await _userManager.AddToRoleAsync(user, "User");
+
+                // Xóa pending registration sau khi đã tạo user thành công
+                // Token đã được đánh dấu IsVerified = true, nên không thể dùng lại nữa
                 await _pendingRegistrationRepository.RemoveAsync(pendingRegistration);
                 await _pendingRegistrationRepository.SaveChangesAsync();
-                return (false, "Token đã hết hạn. Vui lòng đăng ký lại.");
+
+                return (true, "Email đã được xác thực thành công. Bạn có thể đăng nhập ngay bây giờ.");
             }
-
-            // Kiểm tra email đã tồn tại chưa
-            var existingUser = await _userManager.FindByEmailAsync(pendingRegistration.Email);
-            if (existingUser != null)
+            catch (Exception ex)
             {
-                await _pendingRegistrationRepository.RemoveAsync(pendingRegistration);
-                await _pendingRegistrationRepository.SaveChangesAsync();
-                return (false, "Email này đã được sử dụng");
+                return (false, $"Lỗi khi xác thực email: {ex.Message}");
             }
-
-            // Tạo user mới - cần lưu password hash trực tiếp vì đã hash rồi
-            var user = new User
-            {
-                UserName = pendingRegistration.UserName,
-                Email = pendingRegistration.Email,
-                FullName = pendingRegistration.Name,
-                PhoneNumber = pendingRegistration.PhoneNumber,
-                EmailConfirmed = true, // Đánh dấu email đã được verify
-                PasswordHash = pendingRegistration.PasswordHash // Set password hash trực tiếp
-            };
-
-            // Tạo user mà không set password (vì đã set PasswordHash)
-            var result = await _userManager.CreateAsync(user);
-            if (!result.Succeeded)
-            {
-                return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
-            }
-
-            await _userManager.AddToRoleAsync(user, "User");
-
-            // Đánh dấu pending registration đã được verify và xóa
-            pendingRegistration.IsVerified = true;
-            await _pendingRegistrationRepository.RemoveAsync(pendingRegistration);
-            await _pendingRegistrationRepository.SaveChangesAsync();
-
-            return (true, "Email đã được xác thực thành công. Bạn có thể đăng nhập ngay bây giờ.");
         }
         public async Task<(bool Success, IEnumerable<string> Errors)> ChangeRoleAsync(ChangeRoleDto dto)
         {

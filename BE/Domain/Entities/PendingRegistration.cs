@@ -34,7 +34,7 @@ namespace WebApiProject.Domain.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddHours(24); // Token hết hạn sau 24h
+        public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddMinutes(5); // Token hết hạn sau 5 phút
 
         public bool IsVerified { get; set; } = false;
     }

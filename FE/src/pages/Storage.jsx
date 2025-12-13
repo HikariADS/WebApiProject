@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { storageService } from '../api/storageService'
 import { productService } from '../api/productService'
 import { storageTypeService } from '../api/storageTypeService'
+import { userService } from '../api/userService'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { handleApiError, logError } from '../utils/errorHandler'
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants'
 import './TablePage.css'
 import './ProductTypes.css'
 
@@ -10,6 +14,7 @@ const Storage = () => {
   const [storage, setStorage] = useState([])
   const [products, setProducts] = useState([])
   const [storageTypes, setStorageTypes] = useState([])
+  const [managers, setManagers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({
@@ -24,11 +29,13 @@ const Storage = () => {
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
   const { user: currentUser } = useAuth()
+  const { showToast } = useToast()
 
   useEffect(() => {
     fetchStorage()
     fetchProducts()
     fetchStorageTypes()
+    fetchManagers()
   }, [])
 
   const fetchStorage = async () => {
@@ -39,8 +46,11 @@ const Storage = () => {
       setStorage(Array.isArray(data) ? data : [])
       setError('')
     } catch (err) {
-      setError('Không thể tải danh sách kho')
-      console.error(err)
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.FETCH_FAILED, 'Storage.fetchStorage')
+      setError(errorMessage)
+      if (err.response?.status === 403) {
+        setError('Bạn không có quyền xem danh sách kho. Chỉ Admin và Manager mới có quyền này.')
+      }
     } finally {
       setLoading(false)
     }
@@ -52,7 +62,8 @@ const Storage = () => {
       const productsData = response.items || response.Items || []
       setProducts(Array.isArray(productsData) ? productsData : [])
     } catch (err) {
-      console.error('Error fetching products:', err)
+      logError(err, 'Storage.fetchProducts')
+      // Silently fail - products are optional for storage form
     }
   }
 
@@ -61,7 +72,24 @@ const Storage = () => {
       const data = await storageTypeService.getAll()
       setStorageTypes(Array.isArray(data) ? data : [])
     } catch (err) {
-      console.error('Error fetching storage types:', err)
+      logError(err, 'Storage.fetchStorageTypes')
+      showToast('Không thể tải danh sách loại kho', 'error')
+    }
+  }
+
+  const fetchManagers = async () => {
+    try {
+      const data = await userService.getAll()
+      const allUsers = Array.isArray(data) ? data : []
+      // Lọc chỉ lấy users có role Manager hoặc Admin
+      const managerUsers = allUsers.filter(user => {
+        const role = user.role || user.Role || (user.roles && user.roles.length > 0 ? user.roles[0] : '')
+        return role === 'Manager' || role === 'Admin'
+      })
+      setManagers(managerUsers)
+    } catch (err) {
+      logError(err, 'Storage.fetchManagers')
+      // Silently fail - managers are optional for storage form
     }
   }
 
@@ -136,17 +164,17 @@ const Storage = () => {
       if (editingId) {
         submitData.id = editingId
         await storageService.update(editingId, submitData)
+        showToast(SUCCESS_MESSAGES.UPDATED, 'success')
       } else {
         await storageService.create(submitData)
+        showToast(SUCCESS_MESSAGES.CREATED, 'success')
       }
       handleCloseModal()
       fetchStorage()
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.title ||
-                          'Có lỗi xảy ra khi lưu kho.'
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.SAVE_FAILED, 'Storage.handleSubmit')
       setError(errorMessage)
-      console.error(err)
+      showToast(errorMessage, 'error')
     }
   }
 
@@ -156,10 +184,29 @@ const Storage = () => {
     }
     try {
       await storageService.delete(id)
+      showToast(SUCCESS_MESSAGES.DELETED, 'success')
       fetchStorage()
     } catch (err) {
-      alert('Không thể xóa kho.')
-      console.error(err)
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.DELETE_FAILED, 'Storage.handleDelete')
+      showToast(errorMessage, 'error')
+    }
+  }
+
+  const handleUpdateManagerIds = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn cập nhật ManagerId cho tất cả các kho chưa có người quản lý?')) {
+      return
+    }
+    try {
+      setLoading(true)
+      const result = await storageService.updateManagerIds()
+      const message = result.message || 'Đã cập nhật ManagerId cho các kho.'
+      showToast(message, 'success')
+      fetchStorage() // Refresh danh sách
+    } catch (err) {
+      const errorMessage = handleApiError(err, 'Không thể cập nhật ManagerId', 'Storage.handleUpdateManagerIds')
+      showToast(errorMessage, 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -167,13 +214,31 @@ const Storage = () => {
     return <div className="loading">Đang tải...</div>
   }
 
+  // Kiểm tra quyền: chỉ Admin và Manager mới có thể thêm/sửa/xóa
+  const canEdit = currentUser?.roles?.includes('Admin') || currentUser?.roles?.includes('Manager')
+  const isAdmin = currentUser?.roles?.includes('Admin')
+
   return (
-    <div className="table-page">
+    <div className="table-page with-card-view">
       <div className="page-header">
         <h2>Danh sách kho</h2>
-        <button className="btn-primary" onClick={() => handleOpenModal()}>
-          Thêm kho
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {isAdmin && (
+            <button 
+              className="btn-primary" 
+              onClick={handleUpdateManagerIds}
+              style={{ backgroundColor: '#27ae60', fontSize: '0.9rem', padding: '8px 16px' }}
+              title="Cập nhật ManagerId cho các kho chưa có người quản lý"
+            >
+              Cập nhật Manager
+            </button>
+          )}
+          {canEdit && (
+            <button className="btn-primary" onClick={() => handleOpenModal()}>
+              Thêm kho
+            </button>
+          )}
+        </div>
       </div>
       {error && !showModal && <div className="error">{error}</div>}
       <div className="table-container">
@@ -210,18 +275,98 @@ const Storage = () => {
                   <td>{item.exportDate ? new Date(item.exportDate).toLocaleDateString('vi-VN') : '-'}</td>
                   <td>{item.managerName || item.ManagerName || '-'}</td>
                   <td>
-                    <button className="btn-edit" onClick={() => handleOpenModal(item)}>
-                      Sửa
-                    </button>
-                    <button className="btn-delete" onClick={() => handleDelete(item.id || item.Id)}>
-                      Xóa
-                    </button>
+                    {canEdit ? (
+                      <>
+                        <button className="btn-edit" onClick={() => handleOpenModal(item)}>
+                          Sửa
+                        </button>
+                        <button className="btn-delete" onClick={() => handleDelete(item.id || item.Id)}>
+                          Xóa
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ color: '#999', fontSize: '0.9rem' }}>Chỉ xem</span>
+                    )}
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="card-view">
+        {storage.length === 0 ? (
+          <div className="empty-state">
+            {error ? error : 'Chưa có kho nào'}
+          </div>
+        ) : (
+          storage.map((item) => (
+            <div key={item.id || item.Id} className="card-item">
+              <div className="card-item-header">
+                <div className="card-item-title">{item.productName || item.ProductName || '-'}</div>
+                {canEdit && (
+                  <div className="card-item-actions">
+                    <button 
+                      className="btn-edit" 
+                      onClick={() => handleOpenModal(item)}
+                      style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                    >
+                      Sửa
+                    </button>
+                    <button 
+                      className="btn-delete" 
+                      onClick={() => handleDelete(item.id || item.Id)}
+                      style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="card-item-body">
+                <div className="card-item-row">
+                  <span className="card-item-label">ID:</span>
+                  <span className="card-item-value">{item.id || item.Id}</span>
+                </div>
+                <div className="card-item-row">
+                  <span className="card-item-label">Loại kho:</span>
+                  <span className="card-item-value">{item.storageTypeName || item.StorageTypeName || '-'}</span>
+                </div>
+                <div className="card-item-row">
+                  <span className="card-item-label">Vị trí:</span>
+                  <span className="card-item-value">
+                    {(item.storageLocation || item.StorageLocation || '-').substring(0, 40)}
+                    {(item.storageLocation || item.StorageLocation || '').length > 40 ? '...' : ''}
+                  </span>
+                </div>
+                <div className="card-item-row">
+                  <span className="card-item-label">Số lượng:</span>
+                  <span className="card-item-value">{item.quantity || item.Quantity || 0}</span>
+                </div>
+                <div className="card-item-row">
+                  <span className="card-item-label">Ngày nhập:</span>
+                  <span className="card-item-value">
+                    {item.importDate ? new Date(item.importDate).toLocaleDateString('vi-VN') : '-'}
+                  </span>
+                </div>
+                <div className="card-item-row">
+                  <span className="card-item-label">Ngày xuất:</span>
+                  <span className="card-item-value">
+                    {item.exportDate ? new Date(item.exportDate).toLocaleDateString('vi-VN') : '-'}
+                  </span>
+                </div>
+                <div className="card-item-row">
+                  <span className="card-item-label">Người quản lý:</span>
+                  <span className="card-item-value">
+                    {item.managerName || item.ManagerName || '-'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {showModal && (
@@ -308,14 +453,19 @@ const Storage = () => {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="managerId">Manager ID</label>
-                <input
-                  type="text"
+                <label htmlFor="managerId">Người quản lý</label>
+                <select
                   id="managerId"
                   value={formData.managerId}
                   onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
-                  placeholder="Nhập Manager ID (tùy chọn)"
-                />
+                >
+                  <option value="">-- Chọn người quản lý --</option>
+                  {managers.map((manager) => (
+                    <option key={manager.id || manager.Id} value={manager.id || manager.Id}>
+                      {manager.fullName || manager.FullName || manager.userName || manager.UserName}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={handleCloseModal}>

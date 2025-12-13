@@ -18,11 +18,15 @@ namespace WebApiProject.Infrastructure.Repositories
         }
         public async Task<PageResult<ProductDto>> GetAllAsync(ProductQueryRequest request)
         {
-            var query = _context.Products.AsQueryable();
+            var query = _context.Products
+                .Include(p => p.ProductType)
+                .AsQueryable();
+            
             if (!string.IsNullOrEmpty(request.Keyword))
             {
                 query = query.Where(p => p.Name.Contains(request.Keyword));
             }
+            
             var totalItems = await query.CountAsync();
             var items = await query
                 .Skip((request.PageNumber -1) * request.PageSize)
@@ -31,9 +35,13 @@ namespace WebApiProject.Infrastructure.Repositories
                 {
                     Id = p.Id,
                     Name = p.Name,
-                    Price = p.Price
+                    Description = p.Description,
+                    Price = p.Price,
+                    ProductTypeId = p.ProductTypeId,
+                    ProductTypeName = p.ProductType != null ? p.ProductType.Name : string.Empty
                 })
                 .ToListAsync();
+            
             return new PageResult<ProductDto>{
                 Items = items, 
                 TotalItems = totalItems, 
@@ -43,7 +51,9 @@ namespace WebApiProject.Infrastructure.Repositories
         }
         public async Task<Product?> GetByIdAsync(int id)
         {
-            return await _context.Products.FindAsync(id);
+            return await _context.Products
+                .Include(p => p.ProductType)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task AddAsync(Product entity)

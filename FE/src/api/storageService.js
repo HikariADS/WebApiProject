@@ -25,5 +25,10 @@ export const storageService = {
     const response = await api.delete(`/storage/${id}`)
     return response.data
   },
+
+  updateManagerIds: async () => {
+    const response = await api.post('/storage/update-manager-ids')
+    return response.data
+  },
 }
 

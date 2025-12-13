@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { logError } from '../utils/errorHandler'
 import './Auth.css'
 
 const Login = () => {
-  const [email, setEmail] = useState('')
+  const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,20 +25,29 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    e.stopPropagation()
+    
     setError('')
     setLoading(true)
 
-    const result = await login(email, password)
-    
-    if (result.success) {
-      navigate('/')
-    } else {
-      // Đảm bảo error luôn là string
-      const errorMsg = result.error
-      setError(typeof errorMsg === 'string' ? errorMsg : 'Đăng nhập thất bại')
+    try {
+      const result = await login(emailOrUsername, password)
+      
+      if (result.success) {
+        // Hiển thị thông báo thành công trước khi redirect
+        setError('')
+        navigate('/')
+      } else {
+        // Đảm bảo error luôn là string
+        const errorMsg = result.error || 'Đăng nhập thất bại'
+        setError(typeof errorMsg === 'string' ? errorMsg : 'Đăng nhập thất bại')
+        setLoading(false)
+      }
+    } catch (err) {
+      logError(err, 'Login.handleSubmit')
+      setError('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.')
+      setLoading(false)
     }
-    
-    setLoading(false)
   }
 
   return (
@@ -45,16 +55,16 @@ const Login = () => {
       <div className="auth-card">
         <h2>Đăng nhập</h2>
         {error && <div className="error-message">{typeof error === 'string' ? error : 'Đăng nhập thất bại'}</div>}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="emailOrUsername">Email hoặc Tên đăng nhập</label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              id="emailOrUsername"
+              value={emailOrUsername}
+              onChange={(e) => setEmailOrUsername(e.target.value)}
               required
-              placeholder="Nhập email"
+              placeholder="Nhập email hoặc tên đăng nhập"
             />
           </div>
           <div className="form-group">

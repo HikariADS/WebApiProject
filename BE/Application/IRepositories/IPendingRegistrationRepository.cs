@@ -5,6 +5,7 @@ namespace WebApiProject.Application.IRepositories
     public interface IPendingRegistrationRepository
     {
         Task<PendingRegistration?> GetByTokenAsync(string token);
+        Task<PendingRegistration?> GetByTokenIgnoreVerifiedAsync(string token); // Tìm token không filter IsVerified
         Task<PendingRegistration?> GetByEmailAsync(string email);
         Task AddAsync(PendingRegistration registration);
         Task RemoveAsync(PendingRegistration registration);

@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import './Layout.css'
 
@@ -6,11 +7,25 @@ const Layout = ({ children }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+  }
+
+  const closeSidebar = () => {
+    setSidebarOpen(false)
+  }
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    closeSidebar()
+  }, [location.pathname])
 
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -26,7 +41,14 @@ const Layout = ({ children }) => {
 
   return (
     <div className="layout">
-      <aside className="sidebar">
+      <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle menu">
+        {sidebarOpen ? '✕' : '☰'}
+      </button>
+      <div 
+        className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
+        onClick={closeSidebar}
+      />
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <h2>Warehouse System</h2>
         </div>

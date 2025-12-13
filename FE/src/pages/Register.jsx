@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { logError } from '../utils/errorHandler'
 import './Auth.css'
 
 const Register = () => {
@@ -15,6 +17,7 @@ const Register = () => {
   const [errors, setErrors] = useState([])
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
+  const { showToast } = useToast()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -26,6 +29,8 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    e.stopPropagation()
+    
     setErrors([])
 
     // Validation phía client
@@ -46,19 +51,24 @@ const Register = () => {
 
     setLoading(true)
 
-    const { confirmPassword, ...registerData } = formData
-    const result = await register(registerData)
+    try {
+      const { confirmPassword, ...registerData } = formData
+      const result = await register(registerData)
 
-    if (result.success) {
-      // Hiển thị thông báo cần verify email
-      alert('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực sẽ hết hạn sau 24 giờ.')
-      navigate('/login')
-    } else {
-      // Hiển thị danh sách lỗi từ backend
-      setErrors(result.errors || ['Đăng ký thất bại'])
+      if (result.success) {
+        // Hiển thị thông báo cần verify email
+        showToast('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực sẽ hết hạn sau 5 phút.', 'success')
+        navigate('/login')
+      } else {
+        // Hiển thị danh sách lỗi từ backend
+        setErrors(result.errors || ['Đăng ký thất bại'])
+        setLoading(false)
+      }
+    } catch (err) {
+      logError(err, 'Register.handleSubmit')
+      setErrors(['Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.'])
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
@@ -75,7 +85,7 @@ const Register = () => {
             </ul>
           </div>
         )}
-        <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label htmlFor="name">Họ và tên</label>
             <input

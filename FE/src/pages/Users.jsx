@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { userService } from '../api/userService'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { handleApiError, logError } from '../utils/errorHandler'
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants'
 import './TablePage.css'
 import './ProductTypes.css'
 
@@ -20,6 +23,7 @@ const Users = () => {
   const [error, setError] = useState('')
   const { user: currentUser } = useAuth()
   const [userRole, setUserRole] = useState(null)
+  const { showToast } = useToast()
 
   useEffect(() => {
     // Kiểm tra role của user hiện tại
@@ -41,7 +45,6 @@ const Users = () => {
       setLoading(true)
       setError('')
       const data = await userService.getAll()
-      console.log('Users data from API:', data) // Debug log
       
       // Backend trả về array of User entities
       if (Array.isArray(data)) {
@@ -59,22 +62,15 @@ const Users = () => {
         setError('Không nhận được dữ liệu từ server')
       }
     } catch (err) {
-      console.error('Error fetching users:', err)
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.title ||
-                          err.message ||
-                          'Không thể tải danh sách người dùng'
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.FETCH_FAILED, 'Users.fetchUsers')
       setError(errorMessage)
       setUsers([])
       
-      // Xử lý các loại lỗi
+      // Xử lý các loại lỗi đặc biệt
       if (err.response?.status === 403) {
         setError('Bạn không có quyền xem danh sách người dùng')
-      } else if (err.response?.status === 500) {
-        setError('Lỗi server. Vui lòng thử lại sau hoặc liên hệ quản trị viên.')
-        console.error('Server error details:', err.response?.data)
       } else if (err.response?.status === 401) {
-        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+        setError(ERROR_MESSAGES.SESSION_EXPIRED)
       }
     } finally {
       setLoading(false)
@@ -139,20 +135,17 @@ const Users = () => {
           unitId: formData.unitId || null
         }
         await userService.update(editingId, updateData)
+        showToast(SUCCESS_MESSAGES.UPDATED, 'success')
       } else {
         await userService.create(formData)
+        showToast(SUCCESS_MESSAGES.CREATED, 'success')
       }
       handleCloseModal()
       fetchUsers()
     } catch (err) {
-      const errorData = err.response?.data
-      if (Array.isArray(errorData)) {
-        setError(errorData.map(e => e.description || e).join(', '))
-      } else if (errorData?.message) {
-        setError(errorData.message)
-      } else {
-        setError('Có lỗi xảy ra')
-      }
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.SAVE_FAILED, 'Users.handleSubmit')
+      setError(errorMessage)
+      showToast(errorMessage, 'error')
     }
   }
 
@@ -163,10 +156,11 @@ const Users = () => {
 
     try {
       await userService.delete(id)
+      showToast(SUCCESS_MESSAGES.DELETED, 'success')
       fetchUsers()
     } catch (err) {
-      alert('Không thể xóa người dùng')
-      console.error(err)
+      const errorMessage = handleApiError(err, ERROR_MESSAGES.DELETE_FAILED, 'Users.handleDelete')
+      showToast(errorMessage, 'error')
     }
   }
 
@@ -191,7 +185,7 @@ const Users = () => {
   }
 
   return (
-    <div className="table-page">
+    <div className="table-page with-card-view">
       <div className="page-header">
         <h2>Danh sách người dùng</h2>
         {(currentUser?.roles?.includes('Admin') || currentUser?.roles?.includes('Manager')) && (
@@ -252,6 +246,7 @@ const Users = () => {
                             if (window.confirm(`Bạn có chắc chắn muốn thay đổi role của user này từ "${oldRole}" thành "${newRole}"?`)) {
                               try {
                                 await userService.changeRole(userId, newRole)
+                                showToast('Đã thay đổi role thành công', 'success')
                                 // Refresh danh sách sau khi thành công
                                 await fetchUsers()
                               } catch (err) {
@@ -259,12 +254,8 @@ const Users = () => {
                                 e.target.value = oldRole
                                 
                                 // Hiển thị thông báo lỗi chi tiết
-                                const errorMessage = err.response?.data?.message || 
-                                                    err.response?.data?.error ||
-                                                    err.message || 
-                                                    'Không thể thay đổi role. Vui lòng thử lại.'
-                                alert(`Lỗi: ${errorMessage}`)
-                                console.error('Error changing role:', err)
+                                const errorMessage = handleApiError(err, 'Không thể thay đổi role', 'Users.handleChangeRole')
+                                showToast(errorMessage, 'error')
                               }
                             } else {
                               // Reset về giá trị cũ nếu cancel
@@ -301,12 +292,24 @@ const Users = () => {
                       )}
                     </td>
                     <td>
-                      <button className="btn-edit" onClick={() => handleOpenModal(user)}>
-                        Sửa
-                      </button>
-                      <button className="btn-delete" onClick={() => handleDelete(userId)}>
-                        Xóa
-                      </button>
+                      {/* Chỉ Admin và Manager mới có thể sửa/xóa */}
+                      {(currentUser?.roles?.includes('Admin') || currentUser?.roles?.includes('Manager')) && (
+                        <>
+                          <button className="btn-edit" onClick={() => handleOpenModal(user)}>
+                            Sửa
+                          </button>
+                          {/* Chỉ Admin mới có thể xóa user */}
+                          {currentUser?.roles?.includes('Admin') && (
+                            <button className="btn-delete" onClick={() => handleDelete(userId)}>
+                              Xóa
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {/* User role không có nút thao tác */}
+                      {!currentUser?.roles?.includes('Admin') && !currentUser?.roles?.includes('Manager') && (
+                        <span style={{ color: '#999', fontSize: '0.9rem' }}>Không có quyền</span>
+                      )}
                     </td>
                   </tr>
                 )
@@ -314,6 +317,115 @@ const Users = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="card-view">
+        {users.length === 0 ? (
+          <div className="empty-state">
+            {error ? error : 'Chưa có dữ liệu'}
+          </div>
+        ) : (
+          users.map((user) => {
+            const userId = user.id || user.Id
+            const userName = user.userName || user.UserName || ''
+            const fullName = user.fullName || user.FullName || ''
+            const email = user.email || user.Email || ''
+            const role = user.role || user.Role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'User') || 'User'
+            
+            return (
+              <div key={userId} className="card-item">
+                <div className="card-item-header">
+                  <div className="card-item-title">{fullName || userName}</div>
+                  {(currentUser?.roles?.includes('Admin') || currentUser?.roles?.includes('Manager')) && (
+                    <div className="card-item-actions">
+                      <button 
+                        className="btn-edit" 
+                        onClick={() => handleOpenModal(user)}
+                        style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                      >
+                        Sửa
+                      </button>
+                      {currentUser?.roles?.includes('Admin') && (
+                        <button 
+                          className="btn-delete" 
+                          onClick={() => handleDelete(userId)}
+                          style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                        >
+                          Xóa
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="card-item-body">
+                  <div className="card-item-row">
+                    <span className="card-item-label">ID:</span>
+                    <span className="card-item-value">{userId}</span>
+                  </div>
+                  <div className="card-item-row">
+                    <span className="card-item-label">Tên người dùng:</span>
+                    <span className="card-item-value">{userName}</span>
+                  </div>
+                  <div className="card-item-row">
+                    <span className="card-item-label">Email:</span>
+                    <span className="card-item-value">{email}</span>
+                  </div>
+                  <div className="card-item-row">
+                    <span className="card-item-label">Vai trò:</span>
+                    <span className="card-item-value">
+                      {currentUser?.roles?.includes('Admin') ? (
+                        <select
+                          value={role}
+                          onChange={async (e) => {
+                            const newRole = e.target.value
+                            const oldRole = role
+                            
+                            if (window.confirm(`Bạn có chắc chắn muốn thay đổi role từ "${oldRole}" thành "${newRole}"?`)) {
+                              try {
+                                await userService.changeRole(userId, newRole)
+                                await fetchUsers()
+                              } catch (err) {
+                                e.target.value = oldRole
+                                const errorMessage = err.response?.data?.message || err.message || 'Không thể thay đổi role'
+                                alert(`Lỗi: ${errorMessage}`)
+                              }
+                            } else {
+                              e.target.value = oldRole
+                            }
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.85rem',
+                            border: '1px solid #ddd',
+                            backgroundColor: role === 'Admin' ? '#fee' : role === 'Manager' ? '#eef' : '#efe',
+                            color: role === 'Admin' ? '#c33' : role === 'Manager' ? '#33c' : '#3c3',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="User">User</option>
+                          <option value="Manager">Manager</option>
+                          <option value="Admin">Admin</option>
+                        </select>
+                      ) : (
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.85rem',
+                          backgroundColor: role === 'Admin' ? '#fee' : role === 'Manager' ? '#eef' : '#efe',
+                          color: role === 'Admin' ? '#c33' : role === 'Manager' ? '#33c' : '#3c3'
+                        }}>
+                          {role}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
 
       {showModal && (

@@ -58,10 +58,10 @@ namespace WebApiProject.Api.Controllers
                     return Forbid();
                 }
                 
-                // Load users để map ManagerName
+                // Load users để map ManagerName - lấy cả UserName nếu không có FullName
                 var allUsers = await _context.Users.ToListAsync();
-                var userDict = allUsers.Where(u => !string.IsNullOrEmpty(u.FullName))
-                    .ToDictionary(u => u.Id, u => u.FullName);
+                var userDict = allUsers.ToDictionary(u => u.Id, u => 
+                    !string.IsNullOrEmpty(u.FullName) ? u.FullName : u.UserName ?? "Unknown");
                 
                 var list = await query.Select(s => new
                 {
@@ -96,7 +96,9 @@ namespace WebApiProject.Api.Controllers
                     s.UserName,
                     s.BelongToUnitId,
                     s.ManagerId,
-                    ManagerName = s.ManagerId != null && userDict.ContainsKey(s.ManagerId) ? userDict[s.ManagerId] : null
+                    ManagerName = s.ManagerId != null && userDict.ContainsKey(s.ManagerId) 
+                        ? userDict[s.ManagerId] 
+                        : (s.ManagerId != null ? "Chưa có thông tin" : null)
                 }).ToList();
                 
                 return Ok(result);
@@ -147,17 +149,35 @@ namespace WebApiProject.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Create([FromBody] Storage storage)
         {
             string currentRole = GetCurrentUserRole() ?? "";
             string? unitId = GetCurrentUserUnitId();
-            if(currentRole == "User") return Forbid();
             
             // Lấy current user ID
             var currentUser = _context.Users.FirstOrDefault(u => u.UserName == User.Identity.Name);
             if(currentUser == null) return Unauthorized();
             
             storage.UserId = currentUser.Id;
+            
+            // Nếu ManagerId không được set, và current user là Manager, set ManagerId = currentUserId
+            if (string.IsNullOrEmpty(storage.ManagerId) && currentRole == "Manager")
+            {
+                storage.ManagerId = currentUser.Id;
+            }
+            // Nếu ManagerId vẫn null và có manager user, set mặc định
+            else if (string.IsNullOrEmpty(storage.ManagerId))
+            {
+                var defaultManager = await _context.Users
+                    .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && 
+                        _context.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Manager")))
+                    .FirstOrDefaultAsync();
+                if (defaultManager != null)
+                {
+                    storage.ManagerId = defaultManager.Id;
+                }
+            }
             
             if(currentRole == "Manager" && (storage.BelongToUnitId != unitId)) 
                 return Forbid();
@@ -185,15 +205,39 @@ namespace WebApiProject.Api.Controllers
                 ManagerId = storage.ManagerId
             };
             
-            return Ok(result);
+            // Load related data để trả về ManagerName
+            var allUsers = await _context.Users.ToListAsync();
+            var userDict = allUsers.ToDictionary(u => u.Id, u => 
+                !string.IsNullOrEmpty(u.FullName) ? u.FullName : u.UserName ?? "Unknown");
+            
+            var finalResult = new
+            {
+                result.Id,
+                result.ProductId,
+                result.ProductName,
+                result.StorageTypeId,
+                result.StorageTypeName,
+                result.StorageLocation,
+                result.Quantity,
+                result.ImportDate,
+                result.ExportDate,
+                result.UserId,
+                result.BelongToUnitId,
+                result.ManagerId,
+                ManagerName = result.ManagerId != null && userDict.ContainsKey(result.ManagerId) 
+                    ? userDict[result.ManagerId] 
+                    : (result.ManagerId != null ? "Chưa có thông tin" : null)
+            };
+            
+            return Ok(finalResult);
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Update(int id, [FromBody] Storage storage)
         {
             string currentRole = GetCurrentUserRole() ?? "";
             string? unitId = GetCurrentUserUnitId();
-            if(currentRole == "User") return Forbid();
             
             var origin = await _context.Storages.FindAsync(id);
             if(origin == null) return NotFound();
@@ -216,18 +260,75 @@ namespace WebApiProject.Api.Controllers
             origin.BelongToUnitId = storage.BelongToUnitId;
             origin.ManagerId = storage.ManagerId;
             
+            // Nếu ManagerId không được set, và current user là Manager, set ManagerId = currentUserId
+            if (string.IsNullOrEmpty(origin.ManagerId))
+            {
+                if (currentRole == "Manager")
+                {
+                    var userName = User.Identity?.Name;
+                    if (!string.IsNullOrEmpty(userName))
+                    {
+                        var currentUser = _context.Users.FirstOrDefault(u => u.UserName == userName);
+                        if (currentUser != null)
+                        {
+                            origin.ManagerId = currentUser.Id;
+                        }
+                    }
+                }
+                // Nếu vẫn null, set manager mặc định
+                if (string.IsNullOrEmpty(origin.ManagerId))
+                {
+                    var defaultManager = await _context.Users
+                        .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && 
+                            _context.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Manager")))
+                        .FirstOrDefaultAsync();
+                    if (defaultManager != null)
+                    {
+                        origin.ManagerId = defaultManager.Id;
+                    }
+                }
+            }
+            
             await _context.SaveChangesAsync();
-            return NoContent();
+            
+            // Load related data để trả về ManagerName
+            await _context.Entry(origin).Reference(s => s.Product).LoadAsync();
+            await _context.Entry(origin).Reference(s => s.StorageType).LoadAsync();
+            
+            var allUsers = await _context.Users.ToListAsync();
+            var userDict = allUsers.ToDictionary(u => u.Id, u => 
+                !string.IsNullOrEmpty(u.FullName) ? u.FullName : u.UserName ?? "Unknown");
+            
+            var result = new
+            {
+                origin.Id,
+                ProductId = origin.ProductId,
+                ProductName = origin.Product != null ? origin.Product.Name : "",
+                StorageTypeId = origin.StorageTypeId,
+                StorageTypeName = origin.StorageType != null ? origin.StorageType.Name : "",
+                StorageLocation = origin.StorageType != null ? origin.StorageType.StorageLocation : "",
+                Quantity = origin.Quantity,
+                ImportDate = origin.ImportDate,
+                ExportDate = origin.ExportDate,
+                UserId = origin.UserId,
+                BelongToUnitId = origin.BelongToUnitId,
+                ManagerId = origin.ManagerId,
+                ManagerName = origin.ManagerId != null && userDict.ContainsKey(origin.ManagerId) 
+                    ? userDict[origin.ManagerId] 
+                    : (origin.ManagerId != null ? "Chưa có thông tin" : null)
+            };
+            
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Delete(int id)
         {
             var storage = await _context.Storages.FindAsync(id);
             if(storage == null) return NotFound();
             string currentRole = GetCurrentUserRole() ?? "";
             string? unitId = GetCurrentUserUnitId();
-            if(currentRole == "User") return Forbid();
             if(currentRole == "Manager")
             {
                 var userName = User.Identity?.Name;
@@ -243,6 +344,47 @@ namespace WebApiProject.Api.Controllers
             _context.Storages.Remove(storage);
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        [HttpPost("update-manager-ids")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateManagerIds()
+        {
+            try
+            {
+                // Lấy manager user đầu tiên
+                var managerUser = await _context.Users
+                    .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && 
+                        _context.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Manager")))
+                    .FirstOrDefaultAsync();
+                
+                if (managerUser == null)
+                {
+                    return BadRequest(new { message = "Không tìm thấy user có role Manager" });
+                }
+                
+                // Cập nhật tất cả storage có ManagerId null
+                var storagesToUpdate = await _context.Storages
+                    .Where(s => s.ManagerId == null || s.ManagerId == "")
+                    .ToListAsync();
+                
+                foreach (var storage in storagesToUpdate)
+                {
+                    storage.ManagerId = managerUser.Id;
+                }
+                
+                await _context.SaveChangesAsync();
+                
+                return Ok(new { 
+                    message = $"Đã cập nhật {storagesToUpdate.Count} storage với ManagerId", 
+                    managerId = managerUser.Id,
+                    managerName = !string.IsNullOrEmpty(managerUser.FullName) ? managerUser.FullName : managerUser.UserName
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật ManagerId", error = ex.Message });
+            }
         }
     }
 }
