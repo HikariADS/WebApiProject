@@ -27,7 +27,9 @@ namespace WebApiProject.Infrastructure
             services.AddScoped<IProductTypeRepository, ProductTypeRepository>();
             services.AddScoped<IStorageRepository, StorageRepository>();
             services.AddScoped<IStorageTypeRepository, StorageTypeRepository>();
+            services.AddScoped<INewsRepository, NewsRepository>();
             services.AddScoped<WebApiProject.Application.IRepositories.IPendingRegistrationRepository, PendingRegistrationRepository>();
+            services.AddScoped<IPasswordResetCodeRepository, PasswordResetCodeRepository>();
 
             // Paging + Services
             services.AddScoped(typeof(IGenericPagingService<,>), typeof(GenericPagingService<,>));
@@ -35,6 +37,7 @@ namespace WebApiProject.Infrastructure
             services.AddScoped<IProductTypeService, ProductTypeService>();
             services.AddScoped<IStorageService, StorageService>();
             services.AddScoped<IStorageTypeService, StorageTypeService>();
+            services.AddScoped<INewsService, NewsService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IEmailService, EmailService>();

@@ -28,11 +28,13 @@ const Layout = ({ children }) => {
   }, [location.pathname])
 
   const menuItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
+    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/products', label: 'Sản phẩm', icon: '📦' },
     { path: '/product-types', label: 'Loại sản phẩm', icon: '🏷️' },
     { path: '/storage', label: 'Kho', icon: '🏪' },
     { path: '/storage-types', label: 'Loại kho', icon: '📋' },
+    { path: '/reports', label: 'Báo cáo', icon: '📈' },
+    { path: '/news', label: 'Tin tức', icon: '📰' },
     // Chỉ hiển thị menu Users nếu user là Admin hoặc Manager
     ...(user?.roles?.includes('Admin') || user?.roles?.includes('Manager')
       ? [{ path: '/users', label: 'Người dùng', icon: '👥' }]
@@ -66,10 +68,10 @@ const Layout = ({ children }) => {
         </nav>
         <div className="sidebar-footer">
           <div className="user-info">
-            <span>👤 {user?.userName || user?.email || 'User'}</span>
+            <span>{user?.userName || user?.email || 'User'}</span>
           </div>
           <button onClick={handleLogout} className="logout-btn">
-            Đăng xuất
+            🚪 Đăng xuất
           </button>
         </div>
       </aside>
@@ -78,6 +80,12 @@ const Layout = ({ children }) => {
           <h1>
             {menuItems.find((item) => item.path === location.pathname)?.label || 'Dashboard'}
           </h1>
+          {user && (
+            <Link to="/profile" className="profile-link">
+              <span className="profile-icon">👤</span>
+              <span className="profile-name">{user?.userName || user?.email || 'User'}</span>
+            </Link>
+          )}
         </header>
         <div className="content">{children}</div>
       </main>

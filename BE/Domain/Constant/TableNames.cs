@@ -7,5 +7,6 @@ namespace WebApiProject.Domain.Constant
         public const string Storage = "Storages";
         public const string StorageType = "StorageTypes";
         public const string User = "Users";
+        public const string News = "News";
     }
 }

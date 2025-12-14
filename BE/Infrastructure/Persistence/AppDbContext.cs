@@ -15,6 +15,8 @@ namespace WebApiProject.Infrastructure.Persistence
         public DbSet<Storage> Storages => Set<Storage>();
         public DbSet<StorageType> StorageTypes => Set<StorageType>();
         public DbSet<PendingRegistration> PendingRegistrations => Set<PendingRegistration>();
+        public DbSet<News> News => Set<News>();
+        public DbSet<PasswordResetCode> PasswordResetCodes => Set<PasswordResetCode>();
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

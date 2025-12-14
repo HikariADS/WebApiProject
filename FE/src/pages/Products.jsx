@@ -4,6 +4,7 @@ import { productTypeService } from '../api/productTypeService'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { handleApiError, logError } from '../utils/errorHandler'
+import { normalizeResponse } from '../utils/dataNormalizer'
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants'
 import './TablePage.css'
 
@@ -34,8 +35,8 @@ const Products = () => {
     try {
       setLoading(true)
       const response = await productService.getAll()
-      // Backend returns PageResult with Items property
-      setProducts(response.items || response.Items || [])
+      const normalized = normalizeResponse(response)
+      setProducts(normalized.items || [])
       setError('')
     } catch (err) {
       const errorMessage = handleApiError(err, ERROR_MESSAGES.FETCH_FAILED, 'Products.fetchProducts')

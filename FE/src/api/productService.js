@@ -2,7 +2,6 @@ import api from './axiosConfig'
 
 export const productService = {
   getAll: async (params = {}) => {
-    // Backend route là /api/Product (PascalCase)
     const response = await api.get('/Product', { params })
     return response.data
   },

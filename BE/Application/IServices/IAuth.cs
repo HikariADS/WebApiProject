@@ -8,5 +8,7 @@ namespace WebApiProject.Application.IServices
         Task<(AuthResponseDto? Response, string? ErrorMessage)> LoginAsync(LoginDto dto);
         Task<(bool Success, IEnumerable<string> Errors)> ChangeRoleAsync(ChangeRoleDto dto);
         Task<(bool Success, string Message)> VerifyEmailAsync(string token);
+        Task<(bool Success, string Message)> ForgotPasswordAsync(ForgotPasswordDto dto);
+        Task<(bool Success, string Message)> ResetPasswordAsync(ResetPasswordDto dto);
     }
 }

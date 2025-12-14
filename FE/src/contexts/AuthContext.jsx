@@ -52,7 +52,6 @@ export const AuthProvider = ({ children }) => {
       const errorData = error.response?.data
       let errorMessage = 'Đăng nhập thất bại'
       
-      // Backend trả về { message: "..." } khi Unauthorized
       if (errorData) {
         if (errorData.message) {
           errorMessage = errorData.message
@@ -80,7 +79,6 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(registerData)
       return { success: true, data: response }
     } catch (error) {
-      // Backend trả về { errors: [...] } khi đăng ký thất bại
       const errorData = error.response?.data
       let errors = []
       

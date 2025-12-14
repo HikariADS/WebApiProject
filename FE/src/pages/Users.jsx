@@ -46,7 +46,6 @@ const Users = () => {
       setError('')
       const data = await userService.getAll()
       
-      // Backend trả về array of User entities
       if (Array.isArray(data)) {
         if (data.length > 0) {
           setUsers(data)
@@ -225,7 +224,6 @@ const Users = () => {
                 const userName = user.userName || user.UserName || ''
                 const fullName = user.fullName || user.FullName || ''
                 const email = user.email || user.Email || ''
-                // Backend trả về role trong response
                 const role = user.role || user.Role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'User') || 'User'
                 
                 return (

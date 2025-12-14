@@ -276,6 +276,21 @@ tbody tr:hover {
   margin-top: 4px;
 }
 
+.field-error {
+  display: block;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.form-group input.error,
+.form-group textarea.error,
+.form-group select.error {
+  border-color: #e74c3c !important;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1);
+}
+
 /* Toast Container */
 .toast-container {
   position: fixed;

@@ -60,7 +60,6 @@ const Register = () => {
         showToast('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực sẽ hết hạn sau 5 phút.', 'success')
         navigate('/login')
       } else {
-        // Hiển thị danh sách lỗi từ backend
         setErrors(result.errors || ['Đăng ký thất bại'])
         setLoading(false)
       }

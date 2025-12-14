@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { storageService } from '../api/storageService'
 import { productService } from '../api/productService'
 import { storageTypeService } from '../api/storageTypeService'
@@ -6,7 +6,8 @@ import { userService } from '../api/userService'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { handleApiError, logError } from '../utils/errorHandler'
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants'
+import { normalizeArray } from '../utils/dataNormalizer'
+import { ERROR_MESSAGES, SUCCESS_MESSAGES, VALIDATION_MESSAGES } from '../utils/constants'
 import './TablePage.css'
 import './ProductTypes.css'
 
@@ -28,6 +29,8 @@ const Storage = () => {
   })
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [formErrors, setFormErrors] = useState({})
   const { user: currentUser } = useAuth()
   const { showToast } = useToast()
 
@@ -42,8 +45,7 @@ const Storage = () => {
     try {
       setLoading(true)
       const data = await storageService.getAll()
-      // Backend trả về array trực tiếp, không phải PageResult
-      setStorage(Array.isArray(data) ? data : [])
+      setStorage(normalizeArray(data))
       setError('')
     } catch (err) {
       const errorMessage = handleApiError(err, ERROR_MESSAGES.FETCH_FAILED, 'Storage.fetchStorage')
@@ -101,10 +103,10 @@ const Storage = () => {
         quantity: item.quantity || item.Quantity || '',
         importDate: item.importDate ? new Date(item.importDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         exportDate: item.exportDate ? new Date(item.exportDate).toISOString().split('T')[0] : '',
-        belongToUnitId: item.belongToUnitId || item.BelongToUnitId || '',
-        managerId: item.managerId || item.ManagerId || ''
+        belongToUnitId: item.belongToUnitId || '',
+        managerId: item.managerId || ''
       })
-      setEditingId(item.id || item.Id)
+      setEditingId(item.id)
     } else {
       setFormData({
         productId: '',
@@ -117,6 +119,7 @@ const Storage = () => {
       })
       setEditingId(null)
     }
+    setFormErrors({})
     setShowModal(true)
     setError('')
   }
@@ -132,21 +135,63 @@ const Storage = () => {
       belongToUnitId: '',
       managerId: ''
     })
+    setFormErrors({})
     setEditingId(null)
     setError('')
+  }
+
+  const validateForm = () => {
+    const errors = {}
+    
+    if (!formData.productId) {
+      errors.productId = VALIDATION_MESSAGES.REQUIRED
+    }
+    
+    if (!formData.storageTypeId) {
+      errors.storageTypeId = VALIDATION_MESSAGES.REQUIRED
+    }
+    
+    if (!formData.quantity) {
+      errors.quantity = VALIDATION_MESSAGES.REQUIRED
+    } else {
+      const quantity = parseInt(formData.quantity)
+      if (isNaN(quantity) || quantity <= 0) {
+        errors.quantity = VALIDATION_MESSAGES.MIN_VALUE(1)
+      }
+    }
+    
+    if (!formData.importDate) {
+      errors.importDate = VALIDATION_MESSAGES.REQUIRED
+    } else {
+      const importDate = new Date(formData.importDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (importDate > today) {
+        errors.importDate = 'Ngày nhập không được lớn hơn ngày hiện tại'
+      }
+    }
+    
+    if (formData.exportDate) {
+      const exportDate = new Date(formData.exportDate)
+      const importDate = new Date(formData.importDate)
+      if (exportDate < importDate) {
+        errors.exportDate = 'Ngày xuất phải lớn hơn hoặc bằng ngày nhập'
+      }
+    }
+    
+    return errors
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setFormErrors({})
 
-    if (!formData.productId || !formData.storageTypeId || !formData.quantity) {
-      setError('Vui lòng điền đầy đủ thông tin bắt buộc.')
-      return
-    }
-
-    if (parseInt(formData.quantity) <= 0) {
-      setError('Số lượng phải lớn hơn 0.')
+    // Validate form
+    const validationErrors = validateForm()
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors)
+      showToast('Vui lòng kiểm tra lại thông tin đã nhập', 'error')
       return
     }
 
@@ -210,6 +255,20 @@ const Storage = () => {
     }
   }
 
+  // Filter storage based on search term
+  const filteredStorage = useMemo(() => {
+    if (!searchTerm.trim()) return storage
+    
+    const term = searchTerm.toLowerCase()
+    return storage.filter(item => 
+      (item.productName || item.ProductName || '').toLowerCase().includes(term) ||
+      (item.storageTypeName || item.StorageTypeName || '').toLowerCase().includes(term) ||
+      (item.storageLocation || item.StorageLocation || '').toLowerCase().includes(term) ||
+      (item.managerName || item.ManagerName || '').toLowerCase().includes(term) ||
+      String(item.quantity || item.Quantity || '').includes(term)
+    )
+  }, [storage, searchTerm])
+
   if (loading) {
     return <div className="loading">Đang tải...</div>
   }
@@ -222,7 +281,22 @@ const Storage = () => {
     <div className="table-page with-card-view">
       <div className="page-header">
         <h2>Danh sách kho</h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="search-bar" style={{ flex: '1', minWidth: '200px', maxWidth: '400px' }}>
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo sản phẩm, loại kho, vị trí, người quản lý..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '0.9rem'
+              }}
+            />
+          </div>
           {isAdmin && (
             <button 
               className="btn-primary" 
@@ -257,16 +331,16 @@ const Storage = () => {
             </tr>
           </thead>
           <tbody>
-            {storage.length === 0 ? (
+            {filteredStorage.length === 0 ? (
               <tr>
                 <td colSpan="9" className="empty-state">
-                  Chưa có kho nào
+                  {searchTerm ? 'Không tìm thấy kết quả' : 'Chưa có kho nào'}
                 </td>
               </tr>
             ) : (
-              storage.map((item) => (
-                <tr key={item.id || item.Id}>
-                  <td>{item.id || item.Id}</td>
+              filteredStorage.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.id}</td>
                   <td>{item.productName || item.ProductName || '-'}</td>
                   <td>{item.storageTypeName || item.StorageTypeName || '-'}</td>
                   <td>{item.storageLocation || item.StorageLocation || '-'}</td>
@@ -280,7 +354,7 @@ const Storage = () => {
                         <button className="btn-edit" onClick={() => handleOpenModal(item)}>
                           Sửa
                         </button>
-                        <button className="btn-delete" onClick={() => handleDelete(item.id || item.Id)}>
+                        <button className="btn-delete" onClick={() => handleDelete(item.id)}>
                           Xóa
                         </button>
                       </>
@@ -297,13 +371,13 @@ const Storage = () => {
 
       {/* Mobile Card View */}
       <div className="card-view">
-        {storage.length === 0 ? (
+        {filteredStorage.length === 0 ? (
           <div className="empty-state">
-            {error ? error : 'Chưa có kho nào'}
+            {searchTerm ? 'Không tìm thấy kết quả' : (error ? error : 'Chưa có kho nào')}
           </div>
         ) : (
-          storage.map((item) => (
-            <div key={item.id || item.Id} className="card-item">
+          filteredStorage.map((item) => (
+            <div key={item.id} className="card-item">
               <div className="card-item-header">
                 <div className="card-item-title">{item.productName || item.ProductName || '-'}</div>
                 {canEdit && (
@@ -317,7 +391,7 @@ const Storage = () => {
                     </button>
                     <button 
                       className="btn-delete" 
-                      onClick={() => handleDelete(item.id || item.Id)}
+                      onClick={() => handleDelete(item.id)}
                       style={{ fontSize: '0.75rem', padding: '4px 8px' }}
                     >
                       Xóa
@@ -328,7 +402,7 @@ const Storage = () => {
               <div className="card-item-body">
                 <div className="card-item-row">
                   <span className="card-item-label">ID:</span>
-                  <span className="card-item-value">{item.id || item.Id}</span>
+                  <span className="card-item-value">{item.id}</span>
                 </div>
                 <div className="card-item-row">
                   <span className="card-item-label">Loại kho:</span>
@@ -376,15 +450,20 @@ const Storage = () => {
               <h3>{editingId ? 'Sửa kho' : 'Thêm kho'}</h3>
               <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               {error && <div className="error-message">{error}</div>}
               <div className="form-group">
                 <label htmlFor="productId">Sản phẩm *</label>
                 <select
                   id="productId"
                   value={formData.productId}
-                  onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, productId: e.target.value })
+                    if (formErrors.productId) {
+                      setFormErrors({ ...formErrors, productId: '' })
+                    }
+                  }}
+                  className={formErrors.productId ? 'error' : ''}
                 >
                   <option value="">Chọn sản phẩm</option>
                   {products.map((product) => (
@@ -393,14 +472,20 @@ const Storage = () => {
                     </option>
                   ))}
                 </select>
+                {formErrors.productId && <span className="field-error">{formErrors.productId}</span>}
               </div>
               <div className="form-group">
                 <label htmlFor="storageTypeId">Loại kho *</label>
                 <select
                   id="storageTypeId"
                   value={formData.storageTypeId}
-                  onChange={(e) => setFormData({ ...formData, storageTypeId: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, storageTypeId: e.target.value })
+                    if (formErrors.storageTypeId) {
+                      setFormErrors({ ...formErrors, storageTypeId: '' })
+                    }
+                  }}
+                  className={formErrors.storageTypeId ? 'error' : ''}
                 >
                   <option value="">Chọn loại kho</option>
                   {storageTypes.map((type) => (
@@ -409,6 +494,7 @@ const Storage = () => {
                     </option>
                   ))}
                 </select>
+                {formErrors.storageTypeId && <span className="field-error">{formErrors.storageTypeId}</span>}
               </div>
               <div className="form-group">
                 <label htmlFor="quantity">Số lượng *</label>
@@ -416,11 +502,17 @@ const Storage = () => {
                   type="number"
                   id="quantity"
                   value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, quantity: e.target.value })
+                    if (formErrors.quantity) {
+                      setFormErrors({ ...formErrors, quantity: '' })
+                    }
+                  }}
                   min="1"
-                  placeholder="Nhập số lượng"
+                  placeholder="Nhập số lượng (phải lớn hơn 0)"
+                  className={formErrors.quantity ? 'error' : ''}
                 />
+                {formErrors.quantity && <span className="field-error">{formErrors.quantity}</span>}
               </div>
               <div className="form-group">
                 <label htmlFor="importDate">Ngày nhập *</label>
@@ -428,9 +520,16 @@ const Storage = () => {
                   type="date"
                   id="importDate"
                   value={formData.importDate}
-                  onChange={(e) => setFormData({ ...formData, importDate: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setFormData({ ...formData, importDate: e.target.value })
+                    if (formErrors.importDate) {
+                      setFormErrors({ ...formErrors, importDate: '' })
+                    }
+                  }}
+                  max={new Date().toISOString().split('T')[0]}
+                  className={formErrors.importDate ? 'error' : ''}
                 />
+                {formErrors.importDate && <span className="field-error">{formErrors.importDate}</span>}
               </div>
               <div className="form-group">
                 <label htmlFor="exportDate">Ngày xuất</label>
@@ -438,9 +537,20 @@ const Storage = () => {
                   type="date"
                   id="exportDate"
                   value={formData.exportDate}
-                  onChange={(e) => setFormData({ ...formData, exportDate: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, exportDate: e.target.value })
+                    if (formErrors.exportDate) {
+                      setFormErrors({ ...formErrors, exportDate: '' })
+                    }
+                  }}
+                  min={formData.importDate || undefined}
                   placeholder="Ngày xuất (tùy chọn)"
+                  className={formErrors.exportDate ? 'error' : ''}
                 />
+                {formErrors.exportDate && <span className="field-error">{formErrors.exportDate}</span>}
+                <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '4px', display: 'block' }}>
+                  Ngày xuất phải lớn hơn hoặc bằng ngày nhập
+                </small>
               </div>
               <div className="form-group">
                 <label htmlFor="belongToUnitId">Unit ID</label>
@@ -459,13 +569,16 @@ const Storage = () => {
                   value={formData.managerId}
                   onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
                 >
-                  <option value="">-- Chọn người quản lý --</option>
+                  <option value="">-- Chọn người quản lý (tùy chọn) --</option>
                   {managers.map((manager) => (
                     <option key={manager.id || manager.Id} value={manager.id || manager.Id}>
                       {manager.fullName || manager.FullName || manager.userName || manager.UserName}
                     </option>
                   ))}
                 </select>
+                <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '4px', display: 'block' }}>
+                  Chọn người quản lý cho kho này (tùy chọn)
+                </small>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={handleCloseModal}>

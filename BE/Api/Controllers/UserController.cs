@@ -160,6 +160,7 @@ namespace WebApiProject.Api.Controllers
                 return Forbid();
             user.FullName = dto.Name;
             user.Email = dto.Email;
+            user.PhoneNumber = dto.PhoneNumber;
             user.UnitId = dto.UnitId;
             var result = await _userManager.UpdateAsync(user);
             if(!result.Succeeded) return BadRequest(result.Errors);

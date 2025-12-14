@@ -2,7 +2,6 @@ import api from './axiosConfig'
 
 export const authService = {
   login: async (email, password) => {
-    // Backend yêu cầu EmailorUserName và Password (PascalCase)
     const response = await api.post('/auth/login', { 
       EmailorUserName: email, 
       Password: password 
@@ -17,6 +16,21 @@ export const authService = {
 
   getCurrentUser: async () => {
     const response = await api.get('/auth/me')
+    return response.data
+  },
+
+  forgotPassword: async (email) => {
+    const response = await api.post('/auth/forgot-password', { email })
+    return response.data
+  },
+
+  resetPassword: async (email, code, newPassword, confirmPassword) => {
+    const response = await api.post('/auth/reset-password', {
+      email,
+      code,
+      newPassword,
+      confirmPassword
+    })
     return response.data
   },
 }

@@ -105,6 +105,77 @@ namespace WebApiProject.Application.Services
                 return false;
             }
         }
+
+        public async Task<bool> SendPasswordResetEmailAsync(string email, string userName, string resetCode)
+        {
+            // Nếu không có email config (development mode), log code ra console và return true
+            if (string.IsNullOrEmpty(_smtpUsername) || string.IsNullOrEmpty(_smtpPassword))
+            {
+                Console.WriteLine("========================================");
+                Console.WriteLine("PASSWORD RESET CODE (Development Mode)");
+                Console.WriteLine("========================================");
+                Console.WriteLine($"Email: {email}");
+                Console.WriteLine($"UserName: {userName}");
+                Console.WriteLine($"Reset Code: {resetCode}");
+                Console.WriteLine("========================================");
+                Console.WriteLine("Note: Email service is not configured.");
+                Console.WriteLine("In production, please configure SMTP settings in appsettings.json");
+                Console.WriteLine("========================================");
+                return true;
+            }
+
+            try
+            {
+                var subject = "Mã đặt lại mật khẩu";
+                var body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif;'>
+                        <h2>Xin chào {userName}!</h2>
+                        <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản tại Warehouse System.</p>
+                        <p>Mã đặt lại mật khẩu của bạn là:</p>
+                        <div style='background-color: #4A90E2; color: white; padding: 15px 30px; text-align: center; font-size: 24px; font-weight: bold; border-radius: 8px; display: inline-block; margin: 20px 0;'>
+                            {resetCode}
+                        </div>
+                        <p><strong>Lưu ý:</strong> Mã này sẽ hết hạn sau 15 phút.</p>
+                        <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+                        <br>
+                        <p>Trân trọng,<br>Warehouse System</p>
+                    </body>
+                    </html>";
+
+                using (var client = new SmtpClient(_smtpHost, _smtpPort))
+                {
+                    client.EnableSsl = true;
+                    client.Credentials = new NetworkCredential(_smtpUsername, _smtpPassword);
+
+                    var mailMessage = new MailMessage
+                    {
+                        From = new MailAddress(_fromEmail, _fromName),
+                        Subject = subject,
+                        Body = body,
+                        IsBodyHtml = true
+                    };
+
+                    mailMessage.To.Add(email);
+
+                    await client.SendMailAsync(mailMessage);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending password reset email: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                if (string.IsNullOrEmpty(_smtpUsername) || string.IsNullOrEmpty(_smtpPassword))
+                {
+                    Console.WriteLine($"Reset Code (fallback): {resetCode}");
+                    return true;
+                }
+                
+                return false;
+            }
+        }
     }
 }
 

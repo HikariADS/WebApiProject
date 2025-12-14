@@ -77,6 +77,14 @@ const Login = () => {
               required
               placeholder="Nhập mật khẩu"
             />
+            <div style={{ textAlign: 'right', marginTop: '6px' }}>
+              <Link 
+                to="/forgot-password" 
+                className="forgot-password-link"
+              >
+                Quên mật khẩu?
+              </Link>
+            </div>
           </div>
           <button type="submit" className="submit-btn" disabled={loading}>
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}

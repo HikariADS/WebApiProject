@@ -197,40 +197,133 @@ namespace WebApiProject.Infrastructure.Persistence
                     var storages = new List<Storage>();
                     
                     // Phân bổ sản phẩm vào các kho một cách hợp lý
-                    foreach (var product in products.Take(35)) // Lấy 35 sản phẩm đầu
+                    // Tạo nhiều storages hơn để có dữ liệu phong phú cho biểu đồ
+                    var productIndex = 0;
+                    foreach (var product in products)
                     {
-                        var storageType = rnd.Next(0, 3) switch
-                        {
-                            0 => mainStorage,
-                            1 => backupStorage,
-                            _ => showroomStorage
-                        };
+                        // Mỗi sản phẩm có thể có nhiều lần nhập kho trong các tháng khác nhau
+                        var numberOfImports = rnd.Next(1, 4); // Mỗi sản phẩm có 1-3 lần nhập
                         
-                        // Số lượng phù hợp với từng loại sản phẩm
-                        int quantity = product.ProductTypeId switch
+                        for (int i = 0; i < numberOfImports; i++)
                         {
-                            _ when product.Name.Contains("Laptop") || product.Name.Contains("MacBook") => rnd.Next(5, 30),
-                            _ when product.Name.Contains("iPhone") || product.Name.Contains("Samsung") => rnd.Next(20, 50),
-                            _ when product.Name.Contains("TV") || product.Name.Contains("Máy chạy bộ") => rnd.Next(3, 15),
-                            _ when product.Name.Contains("Áo") || product.Name.Contains("Quần") => rnd.Next(50, 150),
-                            _ when product.Name.Contains("Giày") || product.Name.Contains("Balo") => rnd.Next(30, 100),
-                            _ => rnd.Next(20, 80)
-                        };
+                            var storageType = rnd.Next(0, storageTypes.Count);
+                            
+                            // Số lượng phù hợp với từng loại sản phẩm
+                            int quantity = product.ProductTypeId switch
+                            {
+                                _ when product.Name.Contains("Laptop") || product.Name.Contains("MacBook") => rnd.Next(5, 30),
+                                _ when product.Name.Contains("iPhone") || product.Name.Contains("Samsung") => rnd.Next(20, 50),
+                                _ when product.Name.Contains("TV") || product.Name.Contains("Máy chạy bộ") => rnd.Next(3, 15),
+                                _ when product.Name.Contains("Áo") || product.Name.Contains("Quần") => rnd.Next(50, 150),
+                                _ when product.Name.Contains("Giày") || product.Name.Contains("Balo") => rnd.Next(30, 100),
+                                _ => rnd.Next(20, 80)
+                            };
+                            
+                            // Phân bổ ImportDate rải đều trong 6 tháng qua để biểu đồ xu hướng đẹp hơn
+                            // Mỗi tháng có khoảng 15-20% số lượng nhập
+                            var monthsAgo = rnd.Next(0, 6); // 0-5 tháng trước
+                            var daysInMonth = rnd.Next(1, 28); // Ngày trong tháng
+                            var importDate = DateTimeOffset.Now.AddMonths(-monthsAgo).AddDays(-daysInMonth);
+                            
+                            storages.Add(new Storage
+                            {
+                                ProductId = product.Id,
+                                Quantity = quantity,
+                                UserId = adminUser.Id,
+                                StorageTypeId = storageTypes[storageType].Id,
+                                ImportDate = importDate,
+                                ExportDate = rnd.Next(0, 4) == 0 ? null : importDate.AddDays(rnd.Next(1, 30)), // 25% chưa xuất
+                                BelongToUnitId = "UNIT-001",
+                                ManagerId = managerUser?.Id
+                            });
+                        }
                         
-                        storages.Add(new Storage
-                        {
-                            ProductId = product.Id,
-                            Quantity = quantity,
-                            UserId = adminUser.Id,
-                            StorageTypeId = storageType.Id,
-                            ImportDate = DateTimeOffset.Now.AddDays(-rnd.Next(1, 60)),
-                            ExportDate = rnd.Next(0, 4) == 0 ? null : DateTimeOffset.Now.AddDays(-rnd.Next(1, 20)), // 25% chưa xuất
-                            BelongToUnitId = "UNIT-001",
-                            ManagerId = managerUser?.Id
-                        });
+                        productIndex++;
+                        // Giới hạn số lượng để không quá nhiều
+                        if (productIndex >= 40) break;
                     }
                     
                     context.Storages.AddRange(storages);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Seed News
+            if (!context.News.Any())
+            {
+                var adminUserForNews = await userManager.FindByEmailAsync("admin@local.com");
+                var managerUserForNews = await userManager.FindByEmailAsync("manager@local.com");
+                
+                if (adminUserForNews != null && managerUserForNews != null)
+                {
+                    var news = new List<News>
+                    {
+                        new()
+                        {
+                            Title = "Chào mừng đến với hệ thống quản lý kho",
+                            Content = "Hệ thống quản lý kho mới đã được triển khai thành công. Hệ thống giúp bạn quản lý sản phẩm, kho hàng và người dùng một cách hiệu quả. Vui lòng làm quen với các tính năng mới và liên hệ với quản trị viên nếu có thắc mắc.",
+                            Category = "Thông báo",
+                            AuthorId = adminUserForNews.Id,
+                            AuthorName = adminUserForNews.FullName ?? adminUserForNews.UserName ?? "Admin",
+                            CreatedAt = DateTime.UtcNow.AddDays(-10)
+                        },
+                        new()
+                        {
+                            Title = "Cập nhật tính năng báo cáo mới",
+                            Content = "Chúng tôi đã thêm trang báo cáo mới với nhiều thống kê chi tiết hơn. Bạn có thể xem top sản phẩm, kho hàng có số lượng nhiều nhất, sản phẩm sắp hết hàng và nhiều thông tin hữu ích khác. Hãy khám phá ngay!",
+                            Category = "Cập nhật",
+                            AuthorId = adminUserForNews.Id,
+                            AuthorName = adminUserForNews.FullName ?? adminUserForNews.UserName ?? "Admin",
+                            CreatedAt = DateTime.UtcNow.AddDays(-7)
+                        },
+                        new()
+                        {
+                            Title = "Hướng dẫn sử dụng hệ thống quản lý kho",
+                            Content = "Xem hướng dẫn chi tiết về cách sử dụng các tính năng trong hệ thống quản lý kho. Bao gồm: quản lý sản phẩm, quản lý kho hàng, tạo báo cáo, quản lý người dùng và phân quyền. Tài liệu hướng dẫn đầy đủ có sẵn trong menu Help.",
+                            Category = "Hướng dẫn",
+                            AuthorId = managerUserForNews.Id,
+                            AuthorName = managerUserForNews.FullName ?? managerUserForNews.UserName ?? "Manager",
+                            CreatedAt = DateTime.UtcNow.AddDays(-5)
+                        },
+                        new()
+                        {
+                            Title = "Thông báo về quy trình nhập xuất kho",
+                            Content = "Vui lòng tuân thủ quy trình nhập xuất kho mới: 1) Kiểm tra số lượng sản phẩm trước khi nhập/xuất, 2) Cập nhật thông tin đầy đủ trong hệ thống, 3) Xác nhận với quản lý kho trước khi thực hiện giao dịch lớn. Mọi thắc mắc xin liên hệ phòng quản lý kho.",
+                            Category = "Thông báo",
+                            AuthorId = managerUserForNews.Id,
+                            AuthorName = managerUserForNews.FullName ?? managerUserForNews.UserName ?? "Manager",
+                            CreatedAt = DateTime.UtcNow.AddDays(-3)
+                        },
+                        new()
+                        {
+                            Title = "Cải tiến giao diện người dùng",
+                            Content = "Chúng tôi đã cải tiến giao diện người dùng để dễ sử dụng hơn. Các tính năng mới bao gồm: tìm kiếm nhanh, lọc dữ liệu, xem dạng card trên mobile, và nhiều cải tiến khác. Hãy trải nghiệm và cho chúng tôi biết ý kiến của bạn!",
+                            Category = "Cập nhật",
+                            AuthorId = adminUserForNews.Id,
+                            AuthorName = adminUserForNews.FullName ?? adminUserForNews.UserName ?? "Admin",
+                            CreatedAt = DateTime.UtcNow.AddDays(-2)
+                        },
+                        new()
+                        {
+                            Title = "Lịch bảo trì hệ thống",
+                            Content = "Hệ thống sẽ được bảo trì định kỳ vào cuối tuần. Thời gian bảo trì: Chủ nhật hàng tuần từ 2:00 - 4:00 sáng. Trong thời gian này, hệ thống có thể tạm thời không khả dụng. Vui lòng lưu công việc trước khi hệ thống bảo trì. Xin cảm ơn!",
+                            Category = "Thông báo",
+                            AuthorId = adminUserForNews.Id,
+                            AuthorName = adminUserForNews.FullName ?? adminUserForNews.UserName ?? "Admin",
+                            CreatedAt = DateTime.UtcNow.AddDays(-1)
+                        },
+                        new()
+                        {
+                            Title = "Tính năng quản lý tin tức mới",
+                            Content = "Chúng tôi đã thêm trang quản lý tin tức mới. Admin và Manager có thể tạo, chỉnh sửa và xóa tin tức. Người dùng có thể xem tất cả tin tức công khai. Hãy sử dụng tính năng này để cập nhật thông tin quan trọng cho toàn bộ nhân viên.",
+                            Category = "Cập nhật",
+                            AuthorId = adminUserForNews.Id,
+                            AuthorName = adminUserForNews.FullName ?? adminUserForNews.UserName ?? "Admin",
+                            CreatedAt = DateTime.UtcNow
+                        }
+                    };
+
+                    context.News.AddRange(news);
                     await context.SaveChangesAsync();
                 }
             }

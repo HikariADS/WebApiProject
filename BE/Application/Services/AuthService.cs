@@ -20,13 +20,15 @@ namespace WebApiProject.Application.Services
         private readonly IConfiguration _config;
         private readonly IPendingRegistrationRepository _pendingRegistrationRepository;
         private readonly IEmailService _emailService;
+        private readonly IPasswordResetCodeRepository _passwordResetCodeRepository;
 
-        public AuthService(UserManager<User> userManager, IConfiguration config, IPendingRegistrationRepository pendingRegistrationRepository, IEmailService emailService)
+        public AuthService(UserManager<User> userManager, IConfiguration config, IPendingRegistrationRepository pendingRegistrationRepository, IEmailService emailService, IPasswordResetCodeRepository passwordResetCodeRepository)
         {
             _userManager = userManager;
             _config = config;
             _pendingRegistrationRepository = pendingRegistrationRepository;
             _emailService = emailService;
+            _passwordResetCodeRepository = passwordResetCodeRepository;
         }
 
         public async Task<(bool Success, IEnumerable<string> Errors)> RegisterAsync(RegisterDto dto)
@@ -221,6 +223,115 @@ namespace WebApiProject.Application.Services
 
             return (true, Array.Empty<string>());
         }
+        public async Task<(bool Success, string Message)> ForgotPasswordAsync(ForgotPasswordDto dto)
+        {
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(dto.Email);
+                if (user == null)
+                {
+                    // Không tiết lộ email có tồn tại hay không vì lý do bảo mật
+                    return (true, "Nếu email tồn tại, mã đặt lại mật khẩu đã được gửi đến email của bạn.");
+                }
+
+                // Xóa các mã cũ chưa sử dụng cho email này
+                var existingCodes = await _passwordResetCodeRepository.GetByEmailAsync(dto.Email);
+                if (existingCodes != null)
+                {
+                    existingCodes.IsUsed = true; // Đánh dấu là đã sử dụng
+                    await _passwordResetCodeRepository.SaveChangesAsync();
+                }
+
+                // Tạo mã reset 6 chữ số
+                var random = new Random();
+                var resetCode = random.Next(100000, 999999).ToString();
+
+                // Lưu mã reset
+                var passwordResetCode = new PasswordResetCode
+                {
+                    Email = dto.Email,
+                    Code = resetCode,
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(15),
+                    IsUsed = false
+                };
+
+                await _passwordResetCodeRepository.AddAsync(passwordResetCode);
+                await _passwordResetCodeRepository.SaveChangesAsync();
+
+                // Gửi email
+                var emailSent = await _emailService.SendPasswordResetEmailAsync(
+                    dto.Email,
+                    user.FullName ?? user.UserName ?? "Người dùng",
+                    resetCode
+                );
+
+                if (!emailSent)
+                {
+                    await _passwordResetCodeRepository.RemoveAsync(passwordResetCode);
+                    await _passwordResetCodeRepository.SaveChangesAsync();
+                    return (false, "Không thể gửi email. Vui lòng thử lại sau.");
+                }
+
+                return (true, "Nếu email tồn tại, mã đặt lại mật khẩu đã được gửi đến email của bạn.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi khi xử lý yêu cầu: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> ResetPasswordAsync(ResetPasswordDto dto)
+        {
+            try
+            {
+                // Tìm mã reset hợp lệ
+                var resetCode = await _passwordResetCodeRepository.GetByEmailAndCodeAsync(dto.Email, dto.Code);
+                if (resetCode == null)
+                {
+                    return (false, "Mã xác thực không hợp lệ hoặc đã hết hạn.");
+                }
+
+                // Kiểm tra mã đã hết hạn chưa
+                if (resetCode.ExpiresAt < DateTime.UtcNow)
+                {
+                    return (false, "Mã xác thực đã hết hạn. Vui lòng yêu cầu mã mới.");
+                }
+
+                // Kiểm tra mã đã được sử dụng chưa
+                if (resetCode.IsUsed)
+                {
+                    return (false, "Mã xác thực đã được sử dụng. Vui lòng yêu cầu mã mới.");
+                }
+
+                // Tìm user
+                var user = await _userManager.FindByEmailAsync(dto.Email);
+                if (user == null)
+                {
+                    return (false, "Email không tồn tại trong hệ thống.");
+                }
+
+                // Reset password
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var result = await _userManager.ResetPasswordAsync(user, token, dto.NewPassword);
+
+                if (!result.Succeeded)
+                {
+                    return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+
+                // Đánh dấu mã đã được sử dụng
+                resetCode.IsUsed = true;
+                await _passwordResetCodeRepository.SaveChangesAsync();
+
+                return (true, "Đặt lại mật khẩu thành công. Bạn có thể đăng nhập với mật khẩu mới.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi khi đặt lại mật khẩu: {ex.Message}");
+            }
+        }
+
         private async Task<AuthResponseDto> GenerateJwtTokenAsync(User user)
         {
             var roles = await _userManager.GetRolesAsync(user);
