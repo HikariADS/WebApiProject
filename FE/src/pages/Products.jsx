@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { productService } from '../api/productService'
 import { productTypeService } from '../api/productTypeService'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,11 +10,13 @@ import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants'
 import './TablePage.css'
 
 const Products = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [products, setProducts] = useState([])
   const [productTypes, setProductTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedTypeId, setSelectedTypeId] = useState('')
   const { user: currentUser } = useAuth()
   const { showToast } = useToast()
   const [showModal, setShowModal] = useState(false)
@@ -29,7 +32,23 @@ const Products = () => {
   useEffect(() => {
     fetchProducts()
     fetchProductTypes()
+    
+    // Đọc typeId từ URL params nếu có
+    const typeId = searchParams.get('typeId')
+    if (typeId) {
+      setSelectedTypeId(typeId)
+    }
   }, [])
+
+  // Update selectedTypeId when URL params change
+  useEffect(() => {
+    const typeId = searchParams.get('typeId')
+    if (typeId) {
+      setSelectedTypeId(typeId)
+    } else {
+      setSelectedTypeId('')
+    }
+  }, [searchParams])
 
   const fetchProducts = async () => {
     try {
@@ -155,17 +174,29 @@ const Products = () => {
     }
   }
 
-  // Filter products based on search term
+  // Filter products based on search term and selected type
   const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return products
+    let filtered = products
     
-    const term = searchTerm.toLowerCase()
-    return products.filter(product => 
-      (product.name || product.Name || '').toLowerCase().includes(term) ||
-      (product.description || product.Description || '').toLowerCase().includes(term) ||
-      (product.productTypeName || product.ProductTypeName || '').toLowerCase().includes(term)
-    )
-  }, [products, searchTerm])
+    // Filter by product type if selected
+    if (selectedTypeId) {
+      filtered = filtered.filter(product => 
+        String(product.productTypeId || product.ProductTypeId) === String(selectedTypeId)
+      )
+    }
+    
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(product => 
+        (product.name || product.Name || '').toLowerCase().includes(term) ||
+        (product.description || product.Description || '').toLowerCase().includes(term) ||
+        (product.productTypeName || product.ProductTypeName || '').toLowerCase().includes(term)
+      )
+    }
+    
+    return filtered
+  }, [products, searchTerm, selectedTypeId])
 
   if (loading) {
     return <div className="loading">Đang tải...</div>
@@ -209,6 +240,76 @@ const Products = () => {
           </button>
         )}
       </div>
+
+      {/* Product Type Filter Badge */}
+      {selectedTypeId && (
+        <div style={{ 
+          padding: '12px 20px', 
+          backgroundColor: '#e3f2fd', 
+          borderRadius: '8px', 
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '14px', color: '#1976d2', fontWeight: '500' }}>
+            🏷️ Đang lọc theo loại: <strong>{searchParams.get('typeName') || 'Loại sản phẩm'}</strong>
+          </span>
+          <button 
+            onClick={() => {
+              setSelectedTypeId('')
+              setSearchParams({})
+            }}
+            style={{
+              padding: '4px 12px',
+              backgroundColor: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500'
+            }}
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
+      )}
+
+      {/* Product Type Filter */}
+      {selectedTypeId && (
+        <div style={{ 
+          padding: '12px 20px', 
+          backgroundColor: '#e3f2fd', 
+          borderRadius: '8px', 
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '14px', color: '#1976d2', fontWeight: '500' }}>
+            🏷️ Đang lọc theo loại: <strong>{searchParams.get('typeName') || 'Loại sản phẩm'}</strong>
+          </span>
+          <button 
+            onClick={() => {
+              setSelectedTypeId('')
+              setSearchParams({})
+            }}
+            style={{
+              padding: '4px 12px',
+              backgroundColor: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500'
+            }}
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
+      )}
 
       {/* Desktop Table View */}
       <div className="table-container">

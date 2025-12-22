@@ -10,29 +10,13 @@ namespace WebApiProject.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "BelongToUnitId",
-                table: "Storages",
-                type: "nvarchar(max)",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "ManagerId",
-                table: "Storages",
-                type: "nvarchar(max)",
-                nullable: true);
+            // Columns already added in UpdateAuth migration, so this is a no-op
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "BelongToUnitId",
-                table: "Storages");
-
-            migrationBuilder.DropColumn(
-                name: "ManagerId",
-                table: "Storages");
+            // Columns already handled in UpdateAuth migration, so this is a no-op
         }
     }
 }

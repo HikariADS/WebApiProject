@@ -38,15 +38,23 @@ namespace WebApiProject.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "BelongToUnitId",
-                table: "Storages");
+            // Drop BelongToUnitId if it exists
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Storages]') AND name = 'BelongToUnitId')
+                BEGIN
+                    ALTER TABLE [dbo].[Storages] DROP COLUMN [BelongToUnitId];
+                END
+            ");
 
-            migrationBuilder.DropColumn(
-                name: "ManagerId",
-                table: "Storages");
+            // Drop ManagerId if it exists
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Storages]') AND name = 'ManagerId')
+                BEGIN
+                    ALTER TABLE [dbo].[Storages] DROP COLUMN [ManagerId];
+                END
+            ");
 
-            // Drop UnitId only if it exists
+            // Drop UnitId if it exists
             migrationBuilder.Sql(@"
                 IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'UnitId')
                 BEGIN

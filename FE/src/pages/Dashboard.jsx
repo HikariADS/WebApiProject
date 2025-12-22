@@ -303,15 +303,15 @@ const Dashboard = () => {
 
           <div className="chart-card">
             <h3 className="chart-title">Phân bố số lượng theo loại kho</h3>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={450}>
               <PieChart>
                 <Pie
                   data={storageTypeChartData}
                   cx="50%"
-                  cy="50%"
-                  labelLine={false}
+                  cy="45%"
+                  labelLine={true}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
+                  outerRadius={90}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -319,8 +319,12 @@ const Dashboard = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip formatter={(value) => value.toLocaleString('vi-VN')} />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={80}
+                  wrapperStyle={{ paddingTop: '20px' }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>

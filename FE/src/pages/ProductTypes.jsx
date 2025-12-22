@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { productTypeService } from '../api/productTypeService'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -18,6 +19,7 @@ const ProductTypes = () => {
   const [error, setError] = useState('')
   const { user: currentUser } = useAuth()
   const { showToast } = useToast()
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchProductTypes()
@@ -195,7 +197,15 @@ const ProductTypes = () => {
               filteredProductTypes.map((type) => (
                 <tr key={type.id || type.Id}>
                   <td>{type.id || type.Id}</td>
-                  <td>{type.name || type.Name}</td>
+                  <td>
+                    <span 
+                      style={{ cursor: 'pointer', color: '#3498db', fontWeight: '500' }}
+                      onClick={() => navigate(`/products?typeId=${type.id || type.Id}&typeName=${encodeURIComponent(type.name || type.Name)}`)}
+                      title="Xem sản phẩm thuộc loại này"
+                    >
+                      {type.name || type.Name}
+                    </span>
+                  </td>
                   <td>{type.description || type.Description || '-'}</td>
                   <td>
                     {canEdit ? (
